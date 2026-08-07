@@ -1,8 +1,7 @@
 # Changelog
 
-## v0.1.0
-- Project initialized
-- Vision documentation created
-- Business model documented
-- Core principles documented
-- ADR-001 added
+## v0.2.0 - Domain Foundation (Draft)
+- Organization Domain
+- People Domain
+- Learning Domain
+- Next: Review Engine
