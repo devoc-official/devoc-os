@@ -2,6 +2,10 @@
 
 This index is the navigation point for engineering documentation.
 
+## Implementation Specifications
+
+- [Milestone 1 — Foundation, Database, Authentication & Multi-Tenant Organization](01_Implementation/Milestone-01-Foundation.md)
+
 ## AI Development
 
 - [AI Development & Documentation Workflow](AI/Development-Workflow.md)
