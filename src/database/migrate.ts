@@ -27,7 +27,7 @@ export const runMigrations = async (): Promise<void> => {
 
   const files = fs
     .readdirSync(migrationsDir)
-    .filter((f) => f.endsWith('.sql'))
+    .filter((f) => f.endsWith('.sql') && !f.startsWith('.'))
     .sort();
 
   const appliedRes = await db.query<{ name: string }>('SELECT name FROM schema_migrations;');
@@ -57,6 +57,13 @@ export const resetDatabase = async (): Promise<void> => {
   const db = getDbClient();
   logger.info('Resetting database schema...');
   await db.exec(`
+    DROP TABLE IF EXISTS person_skills CASCADE;
+    DROP TABLE IF EXISTS skills CASCADE;
+    DROP TABLE IF EXISTS employment_history CASCADE;
+    DROP TABLE IF EXISTS employments CASCADE;
+    DROP TABLE IF EXISTS person_roles CASCADE;
+    DROP TABLE IF EXISTS roles CASCADE;
+    DROP TABLE IF EXISTS people CASCADE;
     DROP TABLE IF EXISTS audit_logs CASCADE;
     DROP TABLE IF EXISTS teams CASCADE;
     DROP TABLE IF EXISTS departments CASCADE;

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { config } from './config/index.js';
 import { authRouter } from './auth/auth.router.js';
 import { organizationRouter } from './modules/organization/api/organization.router.js';
+import { peopleRouter } from './modules/people/api/people.router.js';
 import { healthRouter } from './api/health.router.js';
 import { sendError } from './shared/http/envelope.js';
 import { NotFoundError } from './shared/errors/index.js';
@@ -24,6 +25,7 @@ export const createApp = (): express.Application => {
   app.use('/api/v1', healthRouter);
   app.use('/api/v1/auth', authRouter);
   app.use('/api/v1', organizationRouter);
+  app.use('/api/v1', peopleRouter);
 
   // 404 Fallback
   app.use((req, res) => {
