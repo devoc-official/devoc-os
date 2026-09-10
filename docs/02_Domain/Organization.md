@@ -4,7 +4,7 @@
 
 The Organization Domain defines the tenant-owned organizational structure used throughout DeVoc OS. It provides the stable context for authorization, People, Assignments, Projects, Learning, Work, Finance, and Analytics.
 
-## Core model
+## Core Model
 
 ```text
 Organization (Tenant)
@@ -16,113 +16,78 @@ Organization (Tenant)
 
 These are configurable organizational objects, not hard-coded DeVoc-specific categories.
 
-## Organization / Tenant
+---
 
+## Implemented Entities & Specifications (Milestone 1)
+
+### 1. Organization / Tenant
 An Organization is the tenant boundary for tenant-owned data.
 
 Rules:
-
-- Every tenant-owned record is scoped to exactly one organization unless a documented exception exists.
+- Every tenant-owned record is scoped to exactly one organization (`organization_id`).
 - Organization isolation is mandatory at authentication, authorization, service, repository, and database boundaries.
-- A user may belong to multiple organizations through memberships.
-- An organization may be Active, Suspended, or Archived.
-- Organization deletion is not part of the initial implementation.
+- A user may belong to multiple organizations through memberships (`organization_memberships`).
+- An organization status state machine supports: `active` -> `suspended` -> `archived`.
+- Status transitions out of `archived` are invalid and rejected.
 
-## Branch
-
+### 2. Branch
 A Branch represents a physical or operational location.
 
 Rules:
-
 - A branch belongs to one organization.
-- A branch does not imply that every Business Unit exists at that location.
-- Branches are configurable and tenant-scoped.
+- Uniqueness constraint: `UNIQUE(organization_id, code)`.
+- Status: `active` or `inactive`.
 
-## Business Unit
-
+### 3. Business Unit
 A Business Unit is a configurable organizational/business area.
 
 Rules:
-
 - A BU belongs to one organization.
 - Future BUs must be creatable without changing application code.
-- A BU can later have a Head, Budget, KPIs, and Team through other domains/modules.
-- A project may belong to multiple BUs in the Project domain.
+- Uniqueness constraint: `UNIQUE(organization_id, code)`.
+- Status: `active` or `inactive`.
 
-Examples for DeVoc include Academy, IT Solutions, Labs, Platform, Analytics, Finance, HR, Learning, and Projects, but these are product configuration rather than schema-level assumptions.
-
-## Department
-
+### 4. Department
 A Department is a configurable organizational grouping.
 
 Rules:
-
 - Departments are tenant-scoped.
-- Departments are optional within an organization's structure.
-- Future departments such as Sales, Marketing, and Finance must be possible without architectural changes.
+- Uniqueness constraint: `UNIQUE(organization_id, code)`.
+- Status: `active` or `inactive`.
 
-## Team
-
+### 5. Team
 A Team is a tenant-scoped working group.
 
-Teams support both permanent and temporary usage through the same entity model.
+Rules:
+- Teams support both permanent and temporary usage through the same entity model (`is_temporary: boolean`).
+- Optional department (`department_id`) and business unit (`business_unit_id`) associations.
+- Uniqueness constraint: `UNIQUE(organization_id, code)`.
+- Status: `active` or `inactive`.
 
-Team membership and person-to-team assignments belong to the People/Assignment architecture; the Organization domain should not duplicate the generic Assignment Engine.
+---
 
-## Authorization context
+## Authorization Context & Tenant Resolution
 
 The effective authorization model is:
 
 **Role + Business Unit + Team + Project**
 
-Project context is supplied by the Project domain. Organization provides the organizational context used by permission policies.
+Implemented M1 roles:
+- `platform_admin`: System administrator.
+- `org_admin`: Full tenant administrative authority.
+- `org_member`: Normal tenant member with read-only structure permissions.
 
-A global `is_admin` flag is not the authorization architecture.
-
-## Tenant resolution
-
-Tenant resolution must occur before authorization and domain logic.
-
+Tenant resolution flow:
 ```text
-Authentication
-→ Tenant Resolution
-→ Permission Check
-→ Validation
-→ Domain Service
-→ Business Rules
-→ Database Transaction
-→ Audit
-→ Domain Event
-→ Response
+Authentication → Tenant Resolution → Permission Check → Validation → Domain Service → Business Rules → Database Transaction → Audit → Domain Event → Response
 ```
 
-Client-supplied organization IDs must never be trusted as proof of tenant access.
+---
 
-## M1 implementation scope
+## Implementation Architecture
 
-Milestone 1 implements the foundational Organization Engine resources:
-
-- Organization
-- Organization Membership
-- Branch
-- Business Unit
-- Department
-- Team
-
-It also establishes the tenant-isolation, authentication, authorization, migration, audit, and API conventions required by later domains.
-
-See [Milestone 1 implementation specification](../01_Implementation/Milestone-01-Foundation.md).
-
-## Future extensions
-
-The Organization Domain is intentionally designed to support:
-
-- Multiple branches per organization.
-- Different BUs across different branches.
-- Department hierarchies/configuration.
-- Permanent and temporary teams.
-- BU Heads.
-- Budgets and KPIs.
-- Contextual permissions.
-- Project-to-multiple-BU relationships.
-- Additional organizational objects without changing the tenant model.
+- **Specification**: [Milestone 1 Foundation](../01_Implementation/Milestone-01-Foundation.md)
+- **Database Schema**: [Database Schema M1](../03_Database/Schema-M1.md)
+- **API Contracts**: [API Contracts M1](../04_API/API-Contracts-M1.md)
+- **Security & Tenancy**: [Auth & Tenancy Security](../05_Security/Auth-And-Tenancy.md)
+- **ADR**: [ADR-005 TypeScript Node Modular Monolith](../10_ADR/ADR-005-TypeScript-Node-Modular-Monolith.md)
