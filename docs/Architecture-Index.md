@@ -12,6 +12,7 @@ This index is the primary navigation point for engineering documentation.
 - [Milestone 6 — Meetings Engine](01_Implementation/Milestone-06-Meetings.md)
 - [Milestone 7 — Learning Engine](01_Implementation/Milestone-07-Learning.md)
 - [Milestone 8 — Evaluation Engine](01_Implementation/Milestone-08-Evaluation.md)
+- [Milestone 9 — Finance Engine](01_Implementation/Milestone-09-Finance.md)
 
 ## Engineering Contracts & Security
 
@@ -23,6 +24,7 @@ This index is the primary navigation point for engineering documentation.
 - [Database Architecture & Schema M6](03_Database/Schema-M6.md)
 - [Database Architecture & Schema M7](03_Database/Schema-M7.md)
 - [Database Architecture & Schema M8](03_Database/Schema-M8.md)
+- [Database Architecture & Schema M9](03_Database/Schema-M9.md)
 - [REST API Architecture & Contracts M1](04_API/API-Contracts-M1.md)
 - [REST API Architecture & Contracts M2](04_API/API-Contracts-M2.md)
 - [REST API Architecture & Contracts M3](04_API/API-Contracts-M3.md)
@@ -31,6 +33,7 @@ This index is the primary navigation point for engineering documentation.
 - [REST API Architecture & Contracts M6](04_API/API-Contracts-M6.md)
 - [REST API Architecture & Contracts M7](04_API/API-Contracts-M7.md)
 - [REST API Architecture & Contracts M8](04_API/API-Contracts-M8.md)
+- [REST API Architecture & Contracts M9](04_API/API-Contracts-M9.md)
 - [Authentication, Tenant Resolution & Security](05_Security/Auth-And-Tenancy.md)
 
 ## AI Development & Workflow
@@ -48,7 +51,7 @@ This index is the primary navigation point for engineering documentation.
 - [Meetings Domain](02_Domain/Meetings.md)
 - [Learning Domain — M7](02_Domain/Learning-M7.md)
 - [Evaluation Domain — M8](02_Domain/Evaluation-M8.md)
-- Finance Engine — planned documentation
+- [Finance Domain — M9](02_Domain/Finance-M9.md)
 - Analytics Engine — planned documentation
 
 ## Architecture Decisions (ADRs)
@@ -64,6 +67,8 @@ This index is the primary navigation point for engineering documentation.
 - [ADR-009 — Work Engine](10_ADR/ADR-009-Work-Engine.md)
 - [ADR-010 — Meetings Engine](10_ADR/ADR-010-Meetings-Engine.md)
 - [ADR-011 — Learning Engine](10_ADR/ADR-011-Learning-Engine.md)
+- [ADR-012 — Evaluation Engine](10_ADR/ADR-012-Evaluation-Engine.md)
+- [ADR-013 — Finance Engine](10_ADR/ADR-013-Finance-Engine.md)
 
 ## Documentation Ownership
 
