@@ -44,7 +44,7 @@ This index is the primary navigation point for engineering documentation.
 - [Work Engine Domain](02_Domain/Work.md)
 - [Meetings Domain](02_Domain/Meetings.md)
 - [Learning Domain — M7](02_Domain/Learning-M7.md)
-- Evaluation Engine — planned documentation
+- [Evaluation Engine — Milestone 08 Implementation](01_Implementation/Milestone-08-Evaluation.md)
 - Finance Engine — planned documentation
 - Analytics Engine — planned documentation
 
