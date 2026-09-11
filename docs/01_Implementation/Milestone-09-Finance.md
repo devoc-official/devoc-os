@@ -2,7 +2,18 @@
 
 ## Status
 
-**Architecture frozen — implementation pending.**
+**Completed and Verified.**
+
+## Summary of Implementation
+
+The Milestone 9 Finance Engine has been fully implemented in `src/modules/finance/` following the frozen architecture specifications:
+
+- **Migration**: `migrations/009_finance_m9_schema.sql` defining 8 relational tables (`finance_categories`, `financial_parties`, `financial_obligations`, `financial_obligation_items`, `financial_transactions`, `financial_allocations`, `financial_adjustments`, `financial_budgets`) with exact `NUMERIC(15,4)` money precision, FK constraints, indexes, and tenant scoping.
+- **Domain Engine**: Clean entities and state machine validators in `src/modules/finance/domain/` supporting draft-issue-paid obligation lifecycle, posted transaction immutability, compensating reversal/refund entries, allocation settlement, and adjustment handling.
+- **Repositories & Services**: Implemented clean data access and application logic in `infrastructure/` and `application/` with full audit logging via `AuditService.recordLog` and event publishing via `eventBus.publish`.
+- **API Endpoints**: Exposed REST resources under `/api/v1/finance/` for categories, parties, obligations, transactions, allocations, adjustments, and budgets.
+- **Tenant Isolation**: Strictly enforced 404 responses for cross-tenant access.
+- **Tests & Verification**: Verified via unit tests (`tests/unit/finance-entity.test.ts`), REST API integration tests (`tests/api/finance-api.test.ts`), and tenant isolation tests (`tests/tenant-isolation/finance-tenant-isolation.test.ts`).
 
 ## Objective
 

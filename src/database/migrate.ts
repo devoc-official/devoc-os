@@ -57,6 +57,14 @@ export const resetDatabase = async (): Promise<void> => {
   const db = getDbClient();
   logger.info('Resetting database schema...');
   await db.exec(`
+    DROP TABLE IF EXISTS financial_budgets CASCADE;
+    DROP TABLE IF EXISTS financial_adjustments CASCADE;
+    DROP TABLE IF EXISTS financial_allocations CASCADE;
+    DROP TABLE IF EXISTS financial_transactions CASCADE;
+    DROP TABLE IF EXISTS financial_obligation_items CASCADE;
+    DROP TABLE IF EXISTS financial_obligations CASCADE;
+    DROP TABLE IF EXISTS financial_parties CASCADE;
+    DROP TABLE IF EXISTS finance_categories CASCADE;
     DROP TABLE IF EXISTS evaluation_history CASCADE;
     DROP TABLE IF EXISTS evaluation_outcomes CASCADE;
     DROP TABLE IF EXISTS evaluation_feedback CASCADE;

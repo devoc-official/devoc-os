@@ -559,11 +559,109 @@ export const seedDevelopmentData = async (): Promise<void> => {
     adminUser.id
   );
 
+  // --- Seed M9 Finance Engine Data ---
+  const { FinanceCategoryService } = await import('../modules/finance/application/finance-category.service.js');
+  const { FinancialPartyService } = await import('../modules/finance/application/financial-party.service.js');
+  const { FinancialObligationService } = await import('../modules/finance/application/financial-obligation.service.js');
+  const { FinancialTransactionService } = await import('../modules/finance/application/financial-transaction.service.js');
+  const { FinancialBudgetService } = await import('../modules/finance/application/financial-budget.service.js');
+
+  const catService = new FinanceCategoryService();
+  const partyService = new FinancialPartyService();
+  const obliService = new FinancialObligationService();
+  const txService = new FinancialTransactionService();
+  const budgetService = new FinancialBudgetService();
+
+  const acadFeeCat = await catService.createCategory(
+    organization.id,
+    { name: 'Academy Tuition Fees', code: 'CAT-ACADEMY-FEE', categoryType: 'revenue', description: 'Tuition and course fees' },
+    adminUser.id
+  );
+  await catService.createCategory(
+    organization.id,
+    { name: 'Client Software Billing', code: 'CAT-CLIENT-BILLING', categoryType: 'revenue', description: 'Software engineering deliverables' },
+    adminUser.id
+  );
+  await catService.createCategory(
+    organization.id,
+    { name: 'Cloud Infrastructure Expense', code: 'CAT-INFRA-EXPENSE', categoryType: 'expense', description: 'Hosting & server costs' },
+    adminUser.id
+  );
+
+  const studentParty = await partyService.createParty(
+    organization.id,
+    {
+      partyType: 'person',
+      personId: leadPerson.id,
+      name: `${leadPerson.firstName} ${leadPerson.lastName}`,
+      email: leadPerson.email,
+    },
+    adminUser.id
+  );
+
+  const sampleObligation = await obliService.createObligation(
+    organization.id,
+    {
+      partyId: studentParty.id,
+      categoryId: acadFeeCat.id,
+      direction: 'receivable',
+      title: 'Full-Stack Software Engineering Tuition Fee',
+      description: 'Q1 Enrollment fee for Full-Stack Software Engineering Track',
+      currency: 'INR',
+      items: [
+        { title: 'Core Course Fee', itemType: 'charge', unitAmount: 50000.0, quantity: 1 },
+        { title: 'Early Bird Discount', itemType: 'discount', unitAmount: 5000.0, quantity: 1 },
+      ],
+    },
+    adminUser.id
+  );
+
+  await obliService.transitionState(organization.id, sampleObligation.id, 'Issued', adminUser.id);
+
+  const samplePayment = await txService.createTransaction(
+    organization.id,
+    {
+      partyId: studentParty.id,
+      direction: 'inflow',
+      transactionType: 'payment',
+      amount: 20000.0,
+      currency: 'INR',
+      paymentMode: 'bank_transfer',
+      referenceNumber: 'TXN-PAY-001',
+      notes: 'Initial installment payment',
+      postImmediately: true,
+    },
+    adminUser.id
+  );
+
+  await txService.allocateTransaction(
+    organization.id,
+    samplePayment.id,
+    sampleObligation.id,
+    20000.0,
+    undefined,
+    'Initial payment allocation',
+    adminUser.id
+  );
+
+  await budgetService.createBudget(
+    organization.id,
+    {
+      businessUnitId: buSolutions.id,
+      periodName: '2026-Q1',
+      budgetAmount: 500000.0,
+      periodStart: '2026-01-01T00:00:00Z',
+      periodEnd: '2026-03-31T23:59:59Z',
+    },
+    adminUser.id
+  );
+
   logger.info(`Created Sample Work Record: ${sampleWork.title} (${sampleWork.id})`);
   logger.info(`Created Sample Meeting: ${sampleMeeting.title} (${sampleMeeting.id})`);
   logger.info(`Created Sample Learning Program: ${fsseProgram.name} (${fsseProgram.id})`);
   logger.info('Created M8 Evaluation Templates (Founder, Employee, Internship, Mentor, Developer).');
-  logger.info('Created Employments, Reporting hierarchy, Sample Assignment, M5 Work, M6 Meetings, M7 Learning & M8 Evaluation Data.');
+  logger.info('Created M9 Finance Categories, Parties, Obligations, Transactions, Allocations, & Budgets.');
+  logger.info('Created Employments, Reporting hierarchy, Sample Assignment, M5 Work, M6 Meetings, M7 Learning, M8 Evaluation & M9 Finance Data.');
   logger.info('✅ Seeding complete!');
 };
 
