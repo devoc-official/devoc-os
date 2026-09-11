@@ -295,8 +295,89 @@ export const seedDevelopmentData = async (): Promise<void> => {
 
   await WorkService.linkWorkOutcome(organization.id, sampleWork.id, sampleOutcome.id, undefined, undefined, undefined, adminUser.id);
 
+  // --- Seed M6 Meetings Engine Data ---
+  const { MeetingTypeService } = await import('../modules/meetings/application/meeting-type.service.js');
+  const { MeetingService } = await import('../modules/meetings/application/meeting.service.js');
+
+  const defaultTypes = await MeetingTypeService.seedDefaultMeetingTypes(organization.id);
+  const projMeetingType = defaultTypes.find((t) => t.code === 'project');
+
+  const sampleMeeting = await MeetingService.createMeeting({
+    organizationId: organization.id,
+    title: 'DeVoc OS M6 Meetings Architecture Sync',
+    description: 'Weekly architecture alignment meeting for platform components',
+    meetingTypeId: projMeetingType?.id || defaultTypes[0].id,
+    scheduledStartAt: new Date('2026-09-15T10:00:00Z'),
+    scheduledEndAt: new Date('2026-09-15T11:00:00Z'),
+    locationType: 'virtual',
+    locationReference: 'https://meet.devoc.internal/m6-sync',
+    organizerPersonId: founderPerson.id,
+    createdByPersonId: founderPerson.id,
+    targetType: 'project',
+    targetId: demoProject.id,
+    actorUserId: adminUser.id,
+  });
+
+  await MeetingService.addParticipant(
+    organization.id,
+    sampleMeeting.id,
+    {
+      personId: leadPerson.id,
+      participantType: 'required',
+      responseStatus: 'accepted',
+    },
+    adminUser.id
+  );
+
+  await MeetingService.addAgendaItem(
+    organization.id,
+    sampleMeeting.id,
+    {
+      title: 'Review M6 Meetings Engine Schema & APIs',
+      description: 'Discuss meeting records, target resolvers, decisions, and action items',
+      position: 1,
+      ownerPersonId: leadPerson.id,
+      durationMinutes: 30,
+    },
+    adminUser.id
+  );
+
+  await MeetingService.upsertDraftNotes(
+    organization.id,
+    sampleMeeting.id,
+    'Discussed Meetings Engine schema, target resolution, and Task linking architecture.',
+    founderPerson.id,
+    undefined,
+    adminUser.id
+  );
+
+  await MeetingService.createDecision(
+    organization.id,
+    sampleMeeting.id,
+    {
+      title: 'Approved M6 Meetings Engine Architecture',
+      decisionText: 'Accepted ADR-010 Meetings Engine design without parallel membership or assignee tables.',
+      recordedByPersonId: founderPerson.id,
+    },
+    adminUser.id
+  );
+
+  await MeetingService.createActionItem(
+    organization.id,
+    sampleMeeting.id,
+    {
+      title: 'Implement Milestone 6 Meetings Engine Code & Tests',
+      description: 'Write repositories, services, controllers, and comprehensive test suite',
+      ownerPersonId: leadPerson.id,
+      dueAt: new Date('2026-09-20T17:00:00Z'),
+      taskId: demoTask.id,
+    },
+    adminUser.id
+  );
+
   logger.info(`Created Sample Work Record: ${sampleWork.title} (${sampleWork.id})`);
-  logger.info('Created Employments, Reporting hierarchy, Sample Assignment & M5 Work Records.');
+  logger.info(`Created Sample Meeting: ${sampleMeeting.title} (${sampleMeeting.id})`);
+  logger.info('Created Employments, Reporting hierarchy, Sample Assignment, M5 Work & M6 Meetings Data.');
   logger.info('✅ Seeding complete!');
 };
 

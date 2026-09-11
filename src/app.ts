@@ -8,6 +8,7 @@ import { peopleRouter } from './modules/people/api/people.router.js';
 import { assignmentRouter } from './modules/assignments/api/assignment.router.js';
 import { projectsTasksRouter } from './modules/projects-tasks/api/projects-tasks.router.js';
 import { workRouter } from './modules/work/api/work.router.js';
+import { meetingRouter } from './modules/meetings/api/meeting.router.js';
 import { registerProjectTaskTargetResolvers } from './modules/projects-tasks/infrastructure/target-resolver.js';
 import { healthRouter } from './api/health.router.js';
 import { sendError } from './shared/http/envelope.js';
@@ -36,6 +37,7 @@ export const createApp = (): express.Application => {
   app.use('/api/v1', assignmentRouter);
   app.use('/api/v1', projectsTasksRouter);
   app.use('/api/v1', workRouter);
+  app.use('/api/v1', meetingRouter);
 
   // 404 Fallback
   app.use((req, res) => {
