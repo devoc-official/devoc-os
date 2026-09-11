@@ -6,13 +6,16 @@ This index is the primary navigation point for engineering documentation.
 
 - [Milestone 1 — Foundation, Database, Authentication & Multi-Tenant Organization](01_Implementation/Milestone-01-Foundation.md)
 - [Milestone 2 — People Engine & Employment Architecture](01_Implementation/Milestone-02-People.md)
+- [Milestone 3 — Generic Assignment Engine](01_Implementation/Milestone-03-Assignments.md)
 
 ## Engineering Contracts & Security
 
 - [Database Architecture & Schema M1](03_Database/Schema-M1.md)
 - [Database Architecture & Schema M2](03_Database/Schema-M2.md)
+- [Database Architecture & Schema M3](03_Database/Schema-M3.md)
 - [REST API Architecture & Contracts M1](04_API/API-Contracts-M1.md)
 - [REST API Architecture & Contracts M2](04_API/API-Contracts-M2.md)
+- [REST API Architecture & Contracts M3](04_API/API-Contracts-M3.md)
 - [Authentication, Tenant Resolution & Security](05_Security/Auth-And-Tenancy.md)
 
 ## AI Development & Workflow
@@ -24,8 +27,8 @@ This index is the primary navigation point for engineering documentation.
 
 - [Organization Domain](02_Domain/Organization.md)
 - [People Domain](02_Domain/People.md)
+- [Assignments Domain](02_Domain/Assignments.md)
 - [Learning Domain](02_Domain/Learning.md)
-- Assignment Engine — planned documentation
 - Work Engine — planned documentation
 - Project Domain — planned documentation
 - Task Domain — planned documentation
@@ -41,6 +44,7 @@ This index is the primary navigation point for engineering documentation.
 - [ADR-004 — Learning Domain](10_ADR/ADR-004-Learning-Domain.md)
 - [ADR-005 — TypeScript Node Modular Monolith Architecture](10_ADR/ADR-005-TypeScript-Node-Modular-Monolith.md)
 - [ADR-006 — People Engine & Employment Model](10_ADR/ADR-006-People-Engine-And-Employment-Model.md)
+- [ADR-007 — Generic Assignment Engine](10_ADR/ADR-007-Assignment-Engine.md)
 
 ## Documentation Ownership
 
