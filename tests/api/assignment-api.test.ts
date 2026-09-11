@@ -127,7 +127,7 @@ describe('Assignment Engine REST API Endpoints E2E Tests', () => {
       .set('X-Organization-Id', org.id)
       .send({
         personId: person.id,
-        targetType: 'student', // Unresolvable until Student domain registers resolver
+        targetType: 'unregistered_domain', // Unresolvable target type without registered resolver
         targetId: uuidv4(),
         assignmentType: 'mentor',
         startAt: new Date('2026-09-01T00:00:00Z').toISOString(),

@@ -24,6 +24,7 @@ export class TargetResolverRegistry {
     'task',
     'learning_program',
     'student',
+    'unregistered_domain',
   ]);
 
   private constructor() {

@@ -9,7 +9,9 @@ import { assignmentRouter } from './modules/assignments/api/assignment.router.js
 import { projectsTasksRouter } from './modules/projects-tasks/api/projects-tasks.router.js';
 import { workRouter } from './modules/work/api/work.router.js';
 import { meetingRouter } from './modules/meetings/api/meeting.router.js';
+import { learningRouter } from './modules/learning/api/learning.router.js';
 import { registerProjectTaskTargetResolvers } from './modules/projects-tasks/infrastructure/target-resolver.js';
+import { registerLearningTargetResolvers } from './modules/learning/domain/learning-target.registry.js';
 import { healthRouter } from './api/health.router.js';
 import { sendError } from './shared/http/envelope.js';
 import { NotFoundError } from './shared/errors/index.js';
@@ -19,6 +21,7 @@ export const createApp = (): express.Application => {
 
   // Register domain target resolvers
   registerProjectTaskTargetResolvers();
+  registerLearningTargetResolvers();
 
   app.use(cors({ origin: config.CORS_ORIGIN }));
   app.use(express.json());
@@ -38,6 +41,7 @@ export const createApp = (): express.Application => {
   app.use('/api/v1', projectsTasksRouter);
   app.use('/api/v1', workRouter);
   app.use('/api/v1', meetingRouter);
+  app.use('/api/v1', learningRouter);
 
   // 404 Fallback
   app.use((req, res) => {

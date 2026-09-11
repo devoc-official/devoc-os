@@ -375,9 +375,119 @@ export const seedDevelopmentData = async (): Promise<void> => {
     adminUser.id
   );
 
+  // --- Seed M7 Learning Engine Data ---
+  const { LearningProgramService } = await import('../modules/learning/application/learning-program.service.js');
+  const { EnrollmentService } = await import('../modules/learning/application/enrollment.service.js');
+  const { LearningReviewService } = await import('../modules/learning/application/learning-review.service.js');
+  const { AssessmentService } = await import('../modules/learning/application/assessment.service.js');
+
+  const programService = new LearningProgramService();
+  const enrollmentService = new EnrollmentService();
+  const reviewService = new LearningReviewService();
+  const assessmentService = new AssessmentService();
+
+  const fsseProgram = await programService.createProgram(
+    organization.id,
+    {
+      name: 'Full-Stack Software Engineering Track',
+      code: 'PROG-FSSE',
+      description: 'DeVoc Academy review-driven software development track',
+    },
+    adminUser.id
+  );
+
+  await programService.activateProgram(organization.id, fsseProgram.id, adminUser.id);
+
+  const pm1 = await programService.addMilestone(
+    organization.id,
+    fsseProgram.id,
+    { name: 'Core TypeScript & Foundations', sequence: 1 },
+    adminUser.id
+  );
+
+  const ad1 = await programService.addActivityDefinition(
+    organization.id,
+    fsseProgram.id,
+    pm1.id,
+    { title: 'Build Enterprise Node.js Modular Monolith', activityType: 'project', sequence: 1 },
+    adminUser.id
+  );
+
+  const sampleEnrollment = await enrollmentService.createEnrollment(
+    organization.id,
+    {
+      personId: leadPerson.id,
+      learningProgramId: fsseProgram.id,
+    },
+    adminUser.id
+  );
+
+  await enrollmentService.activateEnrollment(organization.id, sampleEnrollment.id, adminUser.id);
+
+  const enrollmentMilestones = await enrollmentService.getEnrollmentMilestones(organization.id, sampleEnrollment.id);
+  if (enrollmentMilestones.length > 0) {
+    await enrollmentService.activateMilestone(organization.id, sampleEnrollment.id, enrollmentMilestones[0].id, adminUser.id);
+  }
+
+  const sampleReview = await reviewService.createReview(
+    organization.id,
+    sampleEnrollment.id,
+    {
+      reviewerPersonId: founderPerson.id,
+      reviewType: 'weekly',
+      summary: 'Weekly progress sync on Full-Stack Software Engineering roadmap.',
+      feedback: 'Excellent progress on TypeScript foundations and modular monolith architecture.',
+      progressValue: 25,
+    },
+    adminUser.id
+  );
+
+  await reviewService.addReviewChange(
+    organization.id,
+    sampleEnrollment.id,
+    sampleReview.id,
+    {
+      changeType: 'activate_milestone',
+      targetType: 'enrollment_milestone',
+      targetId: enrollmentMilestones[0]?.id || pm1.id,
+      reason: 'Learner demonstrated core competency in TypeScript and database design.',
+    },
+    adminUser.id
+  );
+
+  const sampleAssessment = await assessmentService.createAssessment(
+    organization.id,
+    sampleEnrollment.id,
+    {
+      title: 'Full-Stack Software Architecture Assessment',
+      description: 'Practical assessment of modular monolith design, multi-tenancy, and testing',
+      maxScore: 100,
+    },
+    adminUser.id
+  );
+
+  const attempt = await assessmentService.submitAttempt(
+    organization.id,
+    sampleAssessment.id,
+    { personId: leadPerson.id },
+    adminUser.id
+  );
+
+  await assessmentService.completeAttempt(
+    organization.id,
+    attempt.id,
+    {
+      status: 'passed',
+      score: 95,
+      qualitativeResult: 'Passed with distinction. Perfect implementation of domain boundary isolation.',
+    },
+    adminUser.id
+  );
+
   logger.info(`Created Sample Work Record: ${sampleWork.title} (${sampleWork.id})`);
   logger.info(`Created Sample Meeting: ${sampleMeeting.title} (${sampleMeeting.id})`);
-  logger.info('Created Employments, Reporting hierarchy, Sample Assignment, M5 Work & M6 Meetings Data.');
+  logger.info(`Created Sample Learning Program: ${fsseProgram.name} (${fsseProgram.id})`);
+  logger.info('Created Employments, Reporting hierarchy, Sample Assignment, M5 Work, M6 Meetings & M7 Learning Data.');
   logger.info('✅ Seeding complete!');
 };
 
