@@ -46,7 +46,7 @@ export const sendError = (
   }
 
   // Internal error fallback (hide sensitive stack traces in production)
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
   const payload: ErrorEnvelope = {
     error: {
       code: ErrorCode.INTERNAL_ERROR,

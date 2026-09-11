@@ -158,7 +158,26 @@ export const seedDevelopmentData = async (): Promise<void> => {
     proficiencyLevel: 'expert',
   });
 
-  logger.info('Created Employments & Reporting hierarchy (John Doe reports to Founder Admin).');
+  // --- Seed M3 Assignment Engine Data ---
+  const assignmentService = new (await import('../modules/assignments/application/assignment.service.js')).AssignmentService();
+  await assignmentService.createAssignment({
+    organizationId: organization.id,
+    personId: leadPerson.id,
+    targetType: 'team',
+    targetId: teamCore.id,
+    assignmentType: 'lead',
+    roleContext: 'tech_lead',
+    status: 'active',
+    startAt: new Date('2026-01-01'),
+    capacityType: 'allocation',
+    capacityValue: 100,
+    capacityUnit: 'percentage',
+    authorityType: 'org_admin',
+    notes: 'Technical Lead for Core Platform Team',
+    actorUserId: adminUser.id,
+  });
+
+  logger.info('Created Employments, Reporting hierarchy & Sample Assignment.');
   logger.info('✅ Seeding complete!');
 };
 
