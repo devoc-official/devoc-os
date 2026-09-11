@@ -6,12 +6,17 @@ import { authRouter } from './auth/auth.router.js';
 import { organizationRouter } from './modules/organization/api/organization.router.js';
 import { peopleRouter } from './modules/people/api/people.router.js';
 import { assignmentRouter } from './modules/assignments/api/assignment.router.js';
+import { projectsTasksRouter } from './modules/projects-tasks/api/projects-tasks.router.js';
+import { registerProjectTaskTargetResolvers } from './modules/projects-tasks/infrastructure/target-resolver.js';
 import { healthRouter } from './api/health.router.js';
 import { sendError } from './shared/http/envelope.js';
 import { NotFoundError } from './shared/errors/index.js';
 
 export const createApp = (): express.Application => {
   const app = express();
+
+  // Register domain target resolvers
+  registerProjectTaskTargetResolvers();
 
   app.use(cors({ origin: config.CORS_ORIGIN }));
   app.use(express.json());
@@ -28,6 +33,7 @@ export const createApp = (): express.Application => {
   app.use('/api/v1', organizationRouter);
   app.use('/api/v1', peopleRouter);
   app.use('/api/v1', assignmentRouter);
+  app.use('/api/v1', projectsTasksRouter);
 
   // 404 Fallback
   app.use((req, res) => {

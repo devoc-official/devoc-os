@@ -41,6 +41,14 @@ export const resolveTenant = async (
     }
 
     if (!requestedOrgId) {
+      const urlToMatch = req.originalUrl || req.url || req.path;
+      const match = urlToMatch.match(/\/organizations\/([a-f0-9-]+)/i);
+      if (match) {
+        requestedOrgId = match[1];
+      }
+    }
+
+    if (!requestedOrgId) {
       throw new TenantContextRequiredError('X-Organization-Id header or organization parameter is required');
     }
 

@@ -6,9 +6,11 @@ import { EmploymentService } from '../modules/people/application/employment.serv
 import { SkillService } from '../modules/people/application/skill.service.js';
 import { runMigrations, closeDb } from '../database/index.js';
 import { logger } from '../shared/logging/logger.js';
+import { registerProjectTaskTargetResolvers } from '../modules/projects-tasks/infrastructure/target-resolver.js';
 
 export const seedDevelopmentData = async (): Promise<void> => {
   logger.info('🌱 Seeding development database...');
+  registerProjectTaskTargetResolvers();
 
   const devSlug = 'devoc-demo';
   const existingOrg = await OrganizationRepository.findBySlug(devSlug);
@@ -177,6 +179,81 @@ export const seedDevelopmentData = async (): Promise<void> => {
     actorUserId: adminUser.id,
   });
 
+  // --- Seed M4 Projects & Tasks Engine Data ---
+  const { ProjectService } = await import('../modules/projects-tasks/application/project.service.js');
+  const { TaskService } = await import('../modules/projects-tasks/application/task.service.js');
+
+  const demoProject = await ProjectService.createProject({
+    organizationId: organization.id,
+    name: 'DeVoc Core Operating System',
+    key: 'DEVOC',
+    description: 'Enterprise Multi-Tenant Business Operating System Platform',
+    projectType: 'saas_product',
+    status: 'development',
+    priority: 'critical',
+    startAt: new Date('2026-01-01'),
+    targetEndAt: new Date('2026-12-31'),
+    createdByPersonId: founderPerson.id,
+    businessUnitIds: [buSolutions.id],
+    owners: [
+      {
+        personId: leadPerson.id,
+        ownershipType: 'technical_owner',
+      },
+      {
+        personId: founderPerson.id,
+        ownershipType: 'accountable',
+      },
+    ],
+    actorUserId: adminUser.id,
+  });
+
+  const demoEpic = await TaskService.createTask({
+    organizationId: organization.id,
+    projectId: demoProject.id,
+    title: 'Core Engine Architecture',
+    description: 'Build core domain engines for DeVoc OS',
+    taskKey: 'DEVOC-1',
+    taskType: 'epic',
+    status: 'in_progress',
+    priority: 'high',
+    createdByPersonId: leadPerson.id,
+    actorUserId: adminUser.id,
+  });
+
+  const demoTask = await TaskService.createTask({
+    organizationId: organization.id,
+    projectId: demoProject.id,
+    parentTaskId: demoEpic.id,
+    title: 'Implement Milestone 4 Projects & Tasks Engine',
+    description: 'Projects and Tasks domain entities, persistence, lifecycle, and target resolvers',
+    taskKey: 'DEVOC-2',
+    taskType: 'task',
+    status: 'in_progress',
+    priority: 'critical',
+    createdByPersonId: leadPerson.id,
+    actorUserId: adminUser.id,
+  });
+
+  // Sample Assignment targeting the Project
+  await assignmentService.createAssignment({
+    organizationId: organization.id,
+    personId: leadPerson.id,
+    targetType: 'project',
+    targetId: demoProject.id,
+    assignmentType: 'developer',
+    roleContext: 'tech_lead',
+    status: 'active',
+    startAt: new Date('2026-01-01'),
+    capacityType: 'allocation',
+    capacityValue: 50,
+    capacityUnit: 'percentage',
+    authorityType: 'org_admin',
+    notes: 'Technical Lead for DeVoc Core OS Project',
+    actorUserId: adminUser.id,
+  });
+
+  logger.info(`Created Sample Project: ${demoProject.name} (${demoProject.key}), Epic: ${demoEpic.taskKey}, Task: ${demoTask.taskKey}`);
   logger.info('Created Employments, Reporting hierarchy & Sample Assignment.');
   logger.info('✅ Seeding complete!');
 };
