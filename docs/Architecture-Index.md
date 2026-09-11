@@ -8,6 +8,7 @@ This index is the primary navigation point for engineering documentation.
 - [Milestone 2 — People Engine & Employment Architecture](01_Implementation/Milestone-02-People.md)
 - [Milestone 3 — Generic Assignment Engine](01_Implementation/Milestone-03-Assignments.md)
 - [Milestone 4 — Projects & Tasks Engine](01_Implementation/Milestone-04-Projects-Tasks.md)
+- [Milestone 5 — Work Engine](01_Implementation/Milestone-05-Work.md)
 
 ## Engineering Contracts & Security
 
@@ -15,10 +16,12 @@ This index is the primary navigation point for engineering documentation.
 - [Database Architecture & Schema M2](03_Database/Schema-M2.md)
 - [Database Architecture & Schema M3](03_Database/Schema-M3.md)
 - [Database Architecture & Schema M4](03_Database/Schema-M4.md)
+- [Database Architecture & Schema M5](03_Database/Schema-M5.md)
 - [REST API Architecture & Contracts M1](04_API/API-Contracts-M1.md)
 - [REST API Architecture & Contracts M2](04_API/API-Contracts-M2.md)
 - [REST API Architecture & Contracts M3](04_API/API-Contracts-M3.md)
 - [REST API Architecture & Contracts M4](04_API/API-Contracts-M4.md)
+- [REST API Architecture & Contracts M5](04_API/API-Contracts-M5.md)
 - [Authentication, Tenant Resolution & Security](05_Security/Auth-And-Tenancy.md)
 
 ## AI Development & Workflow
@@ -32,8 +35,8 @@ This index is the primary navigation point for engineering documentation.
 - [People Domain](02_Domain/People.md)
 - [Assignments Domain](02_Domain/Assignments.md)
 - [Projects & Tasks Domain](02_Domain/Projects-Tasks.md)
+- [Work Engine Domain](02_Domain/Work.md)
 - [Learning Domain](02_Domain/Learning.md)
-- Work Engine — planned documentation
 - Evaluation Engine — planned documentation
 - Finance Engine — planned documentation
 - Analytics Engine — planned documentation
@@ -48,6 +51,7 @@ This index is the primary navigation point for engineering documentation.
 - [ADR-006 — People Engine & Employment Model](10_ADR/ADR-006-People-Engine-And-Employment-Model.md)
 - [ADR-007 — Generic Assignment Engine](10_ADR/ADR-007-Assignment-Engine.md)
 - [ADR-008 — Projects & Tasks Engine](10_ADR/ADR-008-Projects-And-Tasks-Engine.md)
+- [ADR-009 — Work Engine](10_ADR/ADR-009-Work-Engine.md)
 
 ## Documentation Ownership
 
