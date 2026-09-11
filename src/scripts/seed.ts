@@ -253,8 +253,50 @@ export const seedDevelopmentData = async (): Promise<void> => {
     actorUserId: adminUser.id,
   });
 
-  logger.info(`Created Sample Project: ${demoProject.name} (${demoProject.key}), Epic: ${demoEpic.taskKey}, Task: ${demoTask.taskKey}`);
-  logger.info('Created Employments, Reporting hierarchy & Sample Assignment.');
+  // --- Seed M5 Work Engine Data ---
+  const { WorkCategoryService } = await import('../modules/work/application/work-category.service.js');
+  const { WorkService } = await import('../modules/work/application/work.service.js');
+
+  const defaultCategories = await WorkCategoryService.seedDefaultCategories(organization.id);
+  const engCategory = defaultCategories.find((c) => c.code === 'engineering');
+
+  const sampleOutcome = await WorkService.createOutcome({
+    organizationId: organization.id,
+    title: 'Completed M5 Work Engine Core Architecture',
+    description: 'Work records, evidence, outcome linking, and status transitions implemented.',
+    outcomeType: 'deliverable',
+    createdByPersonId: founderPerson.id,
+    actorUserId: adminUser.id,
+  });
+
+  const sampleWork = await WorkService.createWorkRecord({
+    organizationId: organization.id,
+    personId: leadPerson.id,
+    title: 'Implement Milestone 5 Work Engine Architecture',
+    description: 'Domain model, persistence schema, APIs, target resolvers, evidence, and outcome associations',
+    categoryId: engCategory?.id || defaultCategories[0].id,
+    targetType: 'project',
+    targetId: demoProject.id,
+    durationMinutes: 480,
+    startedAt: new Date('2026-09-10T09:00:00Z'),
+    endedAt: new Date('2026-09-10T17:00:00Z'),
+    createdByPersonId: leadPerson.id,
+    actorUserId: adminUser.id,
+  });
+
+  await WorkService.addEvidence({
+    organizationId: organization.id,
+    workRecordId: sampleWork.id,
+    evidenceType: 'github_pull_request',
+    title: 'PR #5: Milestone 5 Work Engine Implementation',
+    referenceUri: 'https://github.com/devoc-official/devoc-os/pull/5',
+    actorUserId: adminUser.id,
+  });
+
+  await WorkService.linkWorkOutcome(organization.id, sampleWork.id, sampleOutcome.id, undefined, undefined, undefined, adminUser.id);
+
+  logger.info(`Created Sample Work Record: ${sampleWork.title} (${sampleWork.id})`);
+  logger.info('Created Employments, Reporting hierarchy, Sample Assignment & M5 Work Records.');
   logger.info('✅ Seeding complete!');
 };
 
