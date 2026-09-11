@@ -10,6 +10,7 @@ import { projectsTasksRouter } from './modules/projects-tasks/api/projects-tasks
 import { workRouter } from './modules/work/api/work.router.js';
 import { meetingRouter } from './modules/meetings/api/meeting.router.js';
 import { learningRouter } from './modules/learning/api/learning.router.js';
+import { evaluationRouter } from './modules/evaluation/api/evaluation.router.js';
 import { registerProjectTaskTargetResolvers } from './modules/projects-tasks/infrastructure/target-resolver.js';
 import { registerLearningTargetResolvers } from './modules/learning/domain/learning-target.registry.js';
 import { healthRouter } from './api/health.router.js';
@@ -42,6 +43,7 @@ export const createApp = (): express.Application => {
   app.use('/api/v1', workRouter);
   app.use('/api/v1', meetingRouter);
   app.use('/api/v1', learningRouter);
+  app.use('/api/v1', evaluationRouter);
 
   // 404 Fallback
   app.use((req, res) => {

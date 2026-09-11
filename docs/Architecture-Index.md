@@ -11,6 +11,7 @@ This index is the primary navigation point for engineering documentation.
 - [Milestone 5 — Work Engine](01_Implementation/Milestone-05-Work.md)
 - [Milestone 6 — Meetings Engine](01_Implementation/Milestone-06-Meetings.md)
 - [Milestone 7 — Learning Engine](01_Implementation/Milestone-07-Learning.md)
+- [Milestone 8 — Evaluation Engine](01_Implementation/Milestone-08-Evaluation.md)
 
 ## Engineering Contracts & Security
 
@@ -21,6 +22,7 @@ This index is the primary navigation point for engineering documentation.
 - [Database Architecture & Schema M5](03_Database/Schema-M5.md)
 - [Database Architecture & Schema M6](03_Database/Schema-M6.md)
 - [Database Architecture & Schema M7](03_Database/Schema-M7.md)
+- [Database Architecture & Schema M8](03_Database/Schema-M8.md)
 - [REST API Architecture & Contracts M1](04_API/API-Contracts-M1.md)
 - [REST API Architecture & Contracts M2](04_API/API-Contracts-M2.md)
 - [REST API Architecture & Contracts M3](04_API/API-Contracts-M3.md)
@@ -28,6 +30,7 @@ This index is the primary navigation point for engineering documentation.
 - [REST API Architecture & Contracts M5](04_API/API-Contracts-M5.md)
 - [REST API Architecture & Contracts M6](04_API/API-Contracts-M6.md)
 - [REST API Architecture & Contracts M7](04_API/API-Contracts-M7.md)
+- [REST API Architecture & Contracts M8](04_API/API-Contracts-M8.md)
 - [Authentication, Tenant Resolution & Security](05_Security/Auth-And-Tenancy.md)
 
 ## AI Development & Workflow
@@ -44,7 +47,7 @@ This index is the primary navigation point for engineering documentation.
 - [Work Engine Domain](02_Domain/Work.md)
 - [Meetings Domain](02_Domain/Meetings.md)
 - [Learning Domain — M7](02_Domain/Learning-M7.md)
-- [Evaluation Engine — Milestone 08 Implementation](01_Implementation/Milestone-08-Evaluation.md)
+- [Evaluation Domain — M8](02_Domain/Evaluation-M8.md)
 - Finance Engine — planned documentation
 - Analytics Engine — planned documentation
 

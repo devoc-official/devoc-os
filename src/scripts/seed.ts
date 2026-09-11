@@ -10,6 +10,7 @@ import { registerProjectTaskTargetResolvers } from '../modules/projects-tasks/in
 
 export const seedDevelopmentData = async (): Promise<void> => {
   logger.info('🌱 Seeding development database...');
+  await runMigrations();
   registerProjectTaskTargetResolvers();
 
   const devSlug = 'devoc-demo';
@@ -484,10 +485,85 @@ export const seedDevelopmentData = async (): Promise<void> => {
     adminUser.id
   );
 
+  // --- Seed M8 Evaluation Engine Data ---
+  const { EvaluationTemplateService } = await import('../modules/evaluation/application/evaluation-template.service.js');
+  const templateService = new EvaluationTemplateService();
+
+  await templateService.createTemplate(
+    organization.id,
+    {
+      name: 'Founder Self-Review',
+      description: 'Self-evaluation template with strategic criteria for founders',
+      criteria: [
+        { name: 'Strategic Vision & Execution', weight: 2.0, criterionType: 'numeric' },
+        { name: 'Partnership & Business Development', weight: 1.5, criterionType: 'numeric' },
+        { name: 'Qualitative Retrospective', weight: 1.0, criterionType: 'qualitative' },
+      ],
+    },
+    adminUser.id
+  );
+
+  await templateService.createTemplate(
+    organization.id,
+    {
+      name: 'Employee Performance Review',
+      description: 'Manager-driven template with key performance indicators',
+      criteria: [
+        { name: 'Job Knowledge & Competency', weight: 1.5, criterionType: 'numeric' },
+        { name: 'Quality of Output & Deliverables', weight: 2.0, criterionType: 'numeric' },
+        { name: 'Team Collaboration & Communication', weight: 1.0, criterionType: 'rating' },
+      ],
+    },
+    adminUser.id
+  );
+
+  await templateService.createTemplate(
+    organization.id,
+    {
+      name: 'Internship Review',
+      description: 'Mentor-guided evaluation for interns',
+      criteria: [
+        { name: 'Learning Velocity & Aptitude', weight: 1.5, criterionType: 'numeric' },
+        { name: 'Task Completion', weight: 1.5, criterionType: 'numeric' },
+        { name: 'Mentor Assessment & Feedback', weight: 1.0, criterionType: 'qualitative' },
+      ],
+    },
+    adminUser.id
+  );
+
+  await templateService.createTemplate(
+    organization.id,
+    {
+      name: 'Mentor Review',
+      description: 'Assessment of mentorship impact and learner progression guidance',
+      criteria: [
+        { name: 'Mentorship Effectiveness', weight: 2.0, criterionType: 'numeric' },
+        { name: 'Guidance & Feedback Quality', weight: 1.5, criterionType: 'rating' },
+        { name: 'Learner Success Impact', weight: 1.5, criterionType: 'qualitative' },
+      ],
+    },
+    adminUser.id
+  );
+
+  await templateService.createTemplate(
+    organization.id,
+    {
+      name: 'Developer Review',
+      description: 'Code quality, technical architecture, and software engineering delivery evaluation',
+      criteria: [
+        { name: 'Code Quality & System Design', weight: 2.0, criterionType: 'numeric' },
+        { name: 'Problem Solving & Bug Resolution', weight: 1.5, criterionType: 'numeric' },
+        { name: 'Architecture Compliance & Documentation', weight: 1.0, criterionType: 'qualitative' },
+      ],
+    },
+    adminUser.id
+  );
+
   logger.info(`Created Sample Work Record: ${sampleWork.title} (${sampleWork.id})`);
   logger.info(`Created Sample Meeting: ${sampleMeeting.title} (${sampleMeeting.id})`);
   logger.info(`Created Sample Learning Program: ${fsseProgram.name} (${fsseProgram.id})`);
-  logger.info('Created Employments, Reporting hierarchy, Sample Assignment, M5 Work, M6 Meetings & M7 Learning Data.');
+  logger.info('Created M8 Evaluation Templates (Founder, Employee, Internship, Mentor, Developer).');
+  logger.info('Created Employments, Reporting hierarchy, Sample Assignment, M5 Work, M6 Meetings, M7 Learning & M8 Evaluation Data.');
   logger.info('✅ Seeding complete!');
 };
 
