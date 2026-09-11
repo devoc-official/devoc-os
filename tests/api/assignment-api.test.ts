@@ -6,6 +6,8 @@ import { OrganizationService } from '../../src/modules/organization/application/
 import { StructureService } from '../../src/modules/organization/application/structure.service.js';
 import { PeopleService } from '../../src/modules/people/application/people.service.js';
 import { AuthService } from '../../src/auth/auth.service.js';
+import { TargetResolverRegistry } from '../../src/modules/assignments/domain/target-resolver.registry.js';
+import { ValidationError } from '../../src/shared/errors/index.js';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('Assignment Engine REST API Endpoints E2E Tests', () => {
@@ -14,8 +16,9 @@ describe('Assignment Engine REST API Endpoints E2E Tests', () => {
   let authToken: string;
   let person: any;
   let teamTarget: any;
+  let buTarget: any;
   let createdAssignmentId: string;
-  const projectTargetId = uuidv4();
+  const mockProjectId = uuidv4();
 
   beforeAll(async () => {
     process.env.USE_PGLITE = 'true';
@@ -34,10 +37,15 @@ describe('Assignment Engine REST API Endpoints E2E Tests', () => {
     const loginRes = await AuthService.login('admin@assign-api.test', 'PasswordAssign123!');
     authToken = loginRes.accessToken;
 
-    // 2. Setup Team Target
+    // 2. Setup Team & BU Targets
     teamTarget = await StructureService.createTeam(org.id, {
       name: 'Frontend Core Team',
       code: 'TEAM-FRONTEND',
+    });
+
+    buTarget = await StructureService.createBusinessUnit(org.id, {
+      name: 'Academy Business Unit',
+      code: 'BU-ACADEMY-TEST',
     });
 
     // 3. Setup Person
@@ -46,13 +54,24 @@ describe('Assignment Engine REST API Endpoints E2E Tests', () => {
       lastName: 'Developer',
       email: 'charlie@assign-api.test',
     });
+
+    // 4. Register mock Project resolver for testing dynamic domain module target registration
+    TargetResolverRegistry.getInstance().registerResolver({
+      targetType: 'project',
+      resolve: async (organizationId: string, targetId: string) => {
+        if (targetId === mockProjectId && organizationId === org.id) {
+          return { valid: true, targetName: 'Mock SaaS Project', assignable: true };
+        }
+        throw new ValidationError(`Project target '${targetId}' not found in organization '${organizationId}'`);
+      },
+    });
   });
 
   afterAll(async () => {
     await closeDb();
   });
 
-  it('POST /assignments — creates assignment successfully', async () => {
+  it('POST /assignments — creates assignment successfully against registered target', async () => {
     const res = await request(app)
       .post(`/api/v1/organizations/${org.id}/assignments`)
       .set('Authorization', `Bearer ${authToken}`)
@@ -60,7 +79,7 @@ describe('Assignment Engine REST API Endpoints E2E Tests', () => {
       .send({
         personId: person.id,
         targetType: 'project',
-        targetId: projectTargetId,
+        targetId: mockProjectId,
         assignmentType: 'contributor',
         roleContext: 'frontend_developer',
         status: 'scheduled',
@@ -81,6 +100,42 @@ describe('Assignment Engine REST API Endpoints E2E Tests', () => {
     expect(res.body.data.capacityValue).toBe(60);
 
     createdAssignmentId = res.body.data.id;
+  });
+
+  it('POST /assignments — rejects nonexistent target ID for database-backed targets', async () => {
+    const res = await request(app)
+      .post(`/api/v1/organizations/${org.id}/assignments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .set('X-Organization-Id', org.id)
+      .send({
+        personId: person.id,
+        targetType: 'team',
+        targetId: uuidv4(), // Nonexistent team
+        assignmentType: 'member',
+        startAt: new Date('2026-09-01T00:00:00Z').toISOString(),
+      });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBeDefined();
+    expect(res.body.error.message).toContain('not found in organization');
+  });
+
+  it('POST /assignments — rejects unresolvable target types without registered resolvers', async () => {
+    const res = await request(app)
+      .post(`/api/v1/organizations/${org.id}/assignments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .set('X-Organization-Id', org.id)
+      .send({
+        personId: person.id,
+        targetType: 'student', // Unresolvable until Student domain registers resolver
+        targetId: uuidv4(),
+        assignmentType: 'mentor',
+        startAt: new Date('2026-09-01T00:00:00Z').toISOString(),
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+    expect(res.body.error.message).toContain('has not registered an active resolver');
   });
 
   it('POST /assignments — produces capacity warning when over-allocated (>100%)', async () => {
@@ -115,7 +170,7 @@ describe('Assignment Engine REST API Endpoints E2E Tests', () => {
       .send({
         personId: person.id,
         targetType: 'project',
-        targetId: projectTargetId,
+        targetId: mockProjectId,
         assignmentType: 'contributor', // Duplicate
         startAt: new Date('2026-09-01T00:00:00Z').toISOString(),
       });

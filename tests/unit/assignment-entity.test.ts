@@ -55,4 +55,34 @@ describe('Assignment Engine Domain Unit Tests', () => {
     expect(registry.isSupportedType('student')).toBe(true);
     expect(registry.isSupportedType('unsupported_type')).toBe(false);
   });
+
+  it('rejects unresolvable target types whose domain module has not registered a resolver', async () => {
+    const registry = TargetResolverRegistry.getInstance();
+    await expect(
+      registry.resolveTarget('org-123', 'project', '11111111-1111-1111-1111-111111111111')
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it('allows dynamic registration of database-backed target resolvers for future domain modules', async () => {
+    const registry = TargetResolverRegistry.getInstance();
+
+    // Register a mock project domain resolver
+    registry.registerResolver({
+      targetType: 'project',
+      resolve: async (organizationId: string, targetId: string) => {
+        if (targetId === '00000000-0000-0000-0000-000000000001' && organizationId === 'org-alpha') {
+          return { valid: true, targetName: 'DeVoc OS SaaS', assignable: true };
+        }
+        throw new ValidationError(`Project '${targetId}' not found in organization '${organizationId}'`);
+      },
+    });
+
+    const result = await registry.resolveTarget('org-alpha', 'project', '00000000-0000-0000-0000-000000000001');
+    expect(result.valid).toBe(true);
+    expect(result.targetName).toBe('DeVoc OS SaaS');
+
+    await expect(
+      registry.resolveTarget('org-alpha', 'project', '00000000-0000-0000-0000-999999999999')
+    ).rejects.toThrow(ValidationError);
+  });
 });

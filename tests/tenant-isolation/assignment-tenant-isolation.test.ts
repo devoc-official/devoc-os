@@ -3,6 +3,7 @@ import request from 'supertest';
 import { createApp } from '../../src/app.js';
 import { runMigrations, closeDb } from '../../src/database/index.js';
 import { OrganizationService } from '../../src/modules/organization/application/organization.service.js';
+import { StructureService } from '../../src/modules/organization/application/structure.service.js';
 import { PeopleService } from '../../src/modules/people/application/people.service.js';
 import { AssignmentService } from '../../src/modules/assignments/application/assignment.service.js';
 import { AuthService } from '../../src/auth/auth.service.js';
@@ -16,6 +17,8 @@ describe('Assignment Engine Multi-Tenant Isolation Tests', () => {
   let userBToken: string;
   let personA: any;
   let personB: any;
+  let teamA: any;
+  let teamB: any;
   let assignmentA: any;
   const assignmentService = new AssignmentService();
 
@@ -48,7 +51,18 @@ describe('Assignment Engine Multi-Tenant Isolation Tests', () => {
     const loginB = await AuthService.login('admin@beta-assign.test', 'PasswordBeta123!');
     userBToken = loginB.accessToken;
 
-    // 3. Create People
+    // 3. Create Teams
+    teamA = await StructureService.createTeam(orgA.id, {
+      name: 'Alpha Core Team',
+      code: 'TEAM-ALPHA',
+    });
+
+    teamB = await StructureService.createTeam(orgB.id, {
+      name: 'Beta Core Team',
+      code: 'TEAM-BETA',
+    });
+
+    // 4. Create People
     personA = await PeopleService.createPerson(orgA.id, {
       firstName: 'Alice',
       lastName: 'Alpha',
@@ -61,12 +75,12 @@ describe('Assignment Engine Multi-Tenant Isolation Tests', () => {
       email: 'bob@beta-assign.test',
     });
 
-    // 4. Create Assignment in Org A
+    // 5. Create Assignment in Org A
     const resultA = await assignmentService.createAssignment({
       organizationId: orgA.id,
       personId: personA.id,
-      targetType: 'project',
-      targetId: uuidv4(),
+      targetType: 'team',
+      targetId: teamA.id,
       assignmentType: 'lead',
       startAt: new Date('2026-01-01'),
       status: 'scheduled',
@@ -96,6 +110,23 @@ describe('Assignment Engine Multi-Tenant Isolation Tests', () => {
     expect(res.status).toBe(404);
   });
 
+  it('prevents Org A from creating an assignment against Org B team target', async () => {
+    const res = await request(app)
+      .post(`/api/v1/organizations/${orgA.id}/assignments`)
+      .set('Authorization', `Bearer ${userAToken}`)
+      .set('X-Organization-Id', orgA.id)
+      .send({
+        personId: personA.id,
+        targetType: 'team',
+        targetId: teamB.id, // Org B team
+        assignmentType: 'contributor',
+        startAt: new Date('2026-01-01').toISOString(),
+      });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.message).toContain('not found in organization');
+  });
+
   it('prevents Org B from creating an assignment for Org A person', async () => {
     const res = await request(app)
       .post(`/api/v1/organizations/${orgB.id}/assignments`)
@@ -103,8 +134,8 @@ describe('Assignment Engine Multi-Tenant Isolation Tests', () => {
       .set('X-Organization-Id', orgB.id)
       .send({
         personId: personA.id, // Org A person
-        targetType: 'project',
-        targetId: uuidv4(),
+        targetType: 'team',
+        targetId: teamB.id,
         assignmentType: 'contributor',
         startAt: new Date('2026-01-01').toISOString(),
       });

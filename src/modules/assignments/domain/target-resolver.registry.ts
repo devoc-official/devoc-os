@@ -16,6 +16,15 @@ export interface TargetResolver {
 export class TargetResolverRegistry {
   private static instance: TargetResolverRegistry;
   private resolvers: Map<string, TargetResolver> = new Map();
+  private supportedTargetTypes: Set<string> = new Set([
+    'business_unit',
+    'department',
+    'team',
+    'project',
+    'task',
+    'learning_program',
+    'student',
+  ]);
 
   private constructor() {
     this.registerDefaultResolvers();
@@ -29,23 +38,30 @@ export class TargetResolverRegistry {
   }
 
   public registerResolver(resolver: TargetResolver): void {
+    this.supportedTargetTypes.add(resolver.targetType);
     this.resolvers.set(resolver.targetType, resolver);
   }
 
   public isSupportedType(targetType: string): boolean {
-    return this.resolvers.has(targetType);
+    return this.supportedTargetTypes.has(targetType);
   }
 
   public async resolveTarget(organizationId: string, targetType: string, targetId: string): Promise<TargetResolverResult> {
+    if (!this.isSupportedType(targetType)) {
+      throw new ValidationError(`Unsupported assignment target type: '${targetType}'`);
+    }
+
     const resolver = this.resolvers.get(targetType);
     if (!resolver) {
-      throw new ValidationError(`Unsupported assignment target type: '${targetType}'`);
+      throw new ValidationError(
+        `Target type '${targetType}' is supported by DeVoc OS architecture, but its target domain module has not registered an active resolver`
+      );
     }
     return resolver.resolve(organizationId, targetId);
   }
 
   private registerDefaultResolvers(): void {
-    // 1. Business Unit Target Resolver
+    // 1. Business Unit Target Resolver (Database-backed)
     this.registerResolver({
       targetType: 'business_unit',
       resolve: async (organizationId: string, targetId: string) => {
@@ -61,7 +77,7 @@ export class TargetResolverRegistry {
       },
     });
 
-    // 2. Department Target Resolver
+    // 2. Department Target Resolver (Database-backed)
     this.registerResolver({
       targetType: 'department',
       resolve: async (organizationId: string, targetId: string) => {
@@ -77,7 +93,7 @@ export class TargetResolverRegistry {
       },
     });
 
-    // 3. Team Target Resolver
+    // 3. Team Target Resolver (Database-backed)
     this.registerResolver({
       targetType: 'team',
       resolve: async (organizationId: string, targetId: string) => {
@@ -93,25 +109,9 @@ export class TargetResolverRegistry {
       },
     });
 
-    // Generic UUID format validator helper for non-M3 target domains
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const genericResolver = (type: string) => ({
-      targetType: type,
-      resolve: async (organizationId: string, targetId: string) => {
-        if (!uuidRegex.test(targetId)) {
-          throw new ValidationError(`Invalid target ID format for ${type}: '${targetId}'`);
-        }
-        return { valid: true, targetName: `${type}:${targetId}`, assignable: true };
-      },
-    });
-
-    // 4. Project
-    this.registerResolver(genericResolver('project'));
-    // 5. Task
-    this.registerResolver(genericResolver('task'));
-    // 6. Learning Program
-    this.registerResolver(genericResolver('learning_program'));
-    // 7. Student
-    this.registerResolver(genericResolver('student'));
+    // Note: Future target types ('project', 'task', 'learning_program', 'student') are registered
+    // as supported target types in supportedTargetTypes set, but do NOT have fallback UUID resolvers
+    // that pretend arbitrary UUIDs exist. When those domain modules are built, they will register
+    // their real database-backed resolvers via TargetResolverRegistry.getInstance().registerResolver(...).
   }
 }
