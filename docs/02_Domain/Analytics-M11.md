@@ -82,7 +82,9 @@ Metric specifications (`calculationSpec`) are validated against an explicit Anal
    * `LEARNING_PROGRAM`, `LEARNING_PROGRAM_MILESTONE`, `LEARNING_ACTIVITY_DEFINITION`, `LEARNING_ENROLLMENT`, `ENROLLMENT_MILESTONE`, `LEARNING_ACTIVITY`, `LEARNING_REVIEW`, `LEARNING_ASSESSMENT`
    * `EVALUATION_TEMPLATE`, `EVALUATION_CRITERION`, `EVALUATION`, `CRITERION_RESULT`, `EVALUATION_OUTCOME`
    * `FINANCE_CATEGORY`, `FINANCIAL_PARTY`, `FINANCIAL_OBLIGATION`, `FINANCIAL_TRANSACTION`, `FINANCIAL_ALLOCATION`, `FINANCIAL_BUDGET`
-   * `PERSON`, `ROLE`, `PERSON_ROLE`, `EMPLOYMENT`, `SKILL`, `PERSON_SKILL`, `ASSIGNMENT`, `MEETING`, `MEETING_PARTICIPANT`, `AUDIT_LOG`, `EVENT_OUTBOX`
+   * `PERSON`, `ROLE`, `PERSON_ROLE`, `EMPLOYMENT`, `SKILL`, `PERSON_SKILL`, `ASSIGNMENT`
+   * `MEETING_TYPE`, `MEETING`, `MEETING_TARGET`, `MEETING_PARTICIPANT`, `MEETING_AGENDA_ITEM`, `MEETING_NOTE`, `MEETING_DECISION`, `MEETING_ACTION_ITEM`
+   * `AUDIT_LOG`, `EVENT_OUTBOX`
 
 2. **Allowed Filter Operators**:
    * `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `between`, `is_null`, `is_not_null`
@@ -101,6 +103,11 @@ Metric specifications (`calculationSpec`) are validated against an explicit Anal
    * `WORK_RECORD -> WORK_CATEGORY` via `work_category_id`
    * `WORK_RECORD -> PROJECT` via `project_id`
    * `TASK -> PROJECT` via `project_id`
+   * `MEETING -> MEETING_TYPE` via `meeting_type_id`
+   * `MEETING -> PERSON` via `organizer_person_id`
+   * `MEETING_TARGET -> MEETING` via `meeting_id`
+   * `MEETING_PARTICIPANT -> MEETING` via `meeting_id`
+   * `MEETING_ACTION_ITEM -> TASK` via `task_id`
    * `EMPLOYMENT -> PERSON` via `person_id`
 
 ---
@@ -170,17 +177,18 @@ Metric specifications (`calculationSpec`) are validated against an explicit Anal
 |----------------|-----------------------------------|-------------------------------|
 | `organization_id` | `organization_id` | All Modules (Mandatory Tenant Scope) |
 | `branch_id` | `branch_id` | Organization, People, Work, Finance |
-| `business_unit_id` | `business_unit_id` | Organization, Projects, Work, Learning, Finance |
+| `business_unit_id` | `business_unit_id` | Organization, Projects, Work, Learning, Finance, Meetings (via `meeting_targets`) |
 | `department_id` | `department_id` | Organization, People, Finance |
 | `team_id` | `team_id` | Organization, People, Projects |
-| `person_id` | `person_id` / `evaluatee_id` / `student_id` | People, Assignments, Work, Meetings, Learning, Evaluation |
+| `person_id` | `person_id` / `evaluatee_id` / `student_id` / `organizer_person_id` | People, Assignments, Work, Meetings, Learning, Evaluation |
 | `role_id` | `role_id` | People, Assignments |
-| `project_id` | `project_id` | Projects, Work, Finance |
-| `task_id` | `task_id` | Projects, Work |
+| `project_id` | `project_id` | Projects, Work, Finance, Meetings (via `meeting_targets`) |
+| `task_id` | `task_id` | Projects, Work, Meetings (via `meeting_action_items`) |
 | `learning_program_id` | `program_id` | Learning, Evaluation |
 | `template_id` | `template_id` | Evaluation |
 | `category_id` | `category_id` / `work_category_id` | Work, Finance |
-| `time_period` | `created_at` / `transaction_date` / `start_time` | All Modules |
+| `meeting_type_id` | `meeting_type_id` | Meetings |
+| `time_period` | `created_at` / `transaction_date` / `scheduled_start_at` | All Modules |
 
 ---
 
@@ -217,7 +225,7 @@ Metric specifications (`calculationSpec`) are validated against an explicit Anal
   │     Work Engine      ├──────────┤     │    Analytics Engine      │
   └──────────────────────┘          │     │  (Metric & Report Query) │
   ┌──────────────────────┐          │     └──────────────────────────┘
-  │   Meetings Engine    ├──────────┤ (meetings, meeting_participants)
+  │   Meetings Engine    ├──────────┤ (meeting_types, meetings, meeting_targets, meeting_participants, meeting_agenda_items, meeting_notes, meeting_decisions, meeting_action_items)
   └──────────────────────┘          │
   ┌──────────────────────┐          │
   │   Learning Engine    ├──────────┤ (learning_programs, learning_enrollments, learning_assessments)

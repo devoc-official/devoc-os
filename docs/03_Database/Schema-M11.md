@@ -121,6 +121,8 @@ To support high-throughput live analytical aggregations without full table scans
 * `financial_obligations`: `(organization_id, status, due_date)`
 * `learning_enrollments`: `(organization_id, status, created_at)`
 * `tasks`: `(organization_id, status, created_at)`
+* `meetings`: `(organization_id, status, scheduled_start_at)`
+* `meeting_targets`: `(organization_id, target_type, target_id)`
 * `evaluations`: `(organization_id, status, template_id, created_at)`
 * `criterion_results`: `(evaluation_id, criterion_id)`
 
@@ -138,4 +140,5 @@ When triggered, an architectural review will evaluate an out-of-band analytical 
 
 ---
 *Document frozen for Milestone 11 – Analytics Database Schema.*
+
 
