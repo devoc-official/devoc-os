@@ -41,8 +41,8 @@
 | `PATCH`| `/api/v1/organizations/:orgId/recruitment/positions/:id` | Update position attributes | `recruitment:manage` |
 | `POST` | `/api/v1/organizations/:orgId/recruitment/positions/:id/open` | Open position for hiring | `recruitment:manage` |
 | `POST` | `/api/v1/organizations/:orgId/recruitment/positions/:id/pause` | Temporarily pause hiring | `recruitment:manage` |
-| `POST` | `/api/v1/organizations/:orgId/recruitment/positions/:id/close` | Close position (terminal) | `recruitment:manage` |
-| `POST` | `/api/v1/organizations/:orgId/recruitment/positions/:id/archive`| Archive position | `recruitment:manage` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/positions/:id/close` | Close position (hiring-terminal) | `recruitment:manage` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/positions/:id/archive`| Archive position (lifecycle-terminal)| `recruitment:manage` |
 | **CANDIDATES** | | | |
 | `POST` | `/api/v1/organizations/:orgId/recruitment/candidates` | Create a candidate profile | `recruitment:create` |
 | `GET` | `/api/v1/organizations/:orgId/recruitment/candidates` | List candidates with filters | `recruitment:view` |
@@ -60,13 +60,13 @@
 | `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/reject` | Reject application (terminal) | `recruitment:decide` |
 | `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/withdraw`| Withdraw application (terminal)| `recruitment:manage` |
 | **STAGE ASSESSMENTS & MEETINGS** | | | |
-| `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/stages/:stageId/evaluate` | Record triage / link M8 | `recruitment:assess` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/stages/:stageId/evaluate` | Record triage / link M8 (if Person)| `recruitment:assess` |
 | `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/stages/:stageId/schedule-interview`| Schedule meeting via M6 | `recruitment:manage` |
 | **TRIALS** | | | |
 | `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/trial` | Schedule candidate trial | `recruitment:manage` |
 | `GET` | `/api/v1/organizations/:orgId/recruitment/applications/:id/trial` | Get active trial details | `recruitment:view` |
 | `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/trial/start` | Activate trial audition | `recruitment:manage` |
-| `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/trial/complete`| Conclude trial with M8 review | `recruitment:manage` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/trial/complete`| Conclude trial (deliverables / M8) | `recruitment:manage` |
 | **OFFERS** | | | |
 | `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/offer` | Issue formal employment offer | `recruitment:offer` |
 | `GET` | `/api/v1/organizations/:orgId/recruitment/applications/:id/offer` | Get active offer details | `recruitment:view` |
@@ -126,12 +126,6 @@ Creates a new recruitment requisition in `draft` status.
 }
 ```
 
-* **Error Codes**:
-  - `400 VALIDATION_ERROR`: Invalid currency, negative openings, or minSalary > maxSalary.
-  - `403 FORBIDDEN`: Missing `recruitment:create` capability.
-  - `404 NOT_FOUND`: Target BU, department, team, role, or manager does not belong to `:orgId`.
-  - `409 CONFLICT`: Position code already exists in tenant organization.
-
 ---
 
 #### `POST /api/v1/organizations/:orgId/recruitment/positions/:id/close`
@@ -153,127 +147,18 @@ Transitions position status from `open` or `paused` to `closed`. Closed requisit
 
 ---
 
-### 2.2 Candidates
-
-#### `POST /api/v1/organizations/:orgId/recruitment/candidates`
-Registers a new candidate in the recruitment engine.
-
-* **Request Body**:
-```json
-{
-  "firstName": "Alex",
-  "lastName": "Mercer",
-  "email": "alex.mercer@example.com",
-  "phone": "+1-555-0199",
-  "source": "referral",
-  "sourceDetails": "Referred by John Doe (Tech Lead)",
-  "resumeUrl": "https://storage.devoc.internal/resumes/alex-mercer-2026.pdf",
-  "portfolioUrl": "https://github.com/alexmercer",
-  "skills": ["TypeScript", "PostgreSQL", "Node.js", "Docker"]
-}
-```
-
-* **Success Response (201 Created)**:
-```json
-{
-  "data": {
-    "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
-    "organizationId": "df368955-d081-442c-a7a7-8d392be561f7",
-    "firstName": "Alex",
-    "lastName": "Mercer",
-    "email": "alex.mercer@example.com",
-    "source": "referral",
-    "status": "active",
-    "createdAt": "2026-09-14T10:10:00.000Z"
-  },
-  "meta": {
-    "requestId": "req-recruitment-cand-01"
-  }
-}
-```
-
----
-
-### 2.3 Applications
-
-#### `POST /api/v1/organizations/:orgId/recruitment/applications`
-Initiates an application for a candidate against a position.
-
-* **Request Body**:
-```json
-{
-  "candidateId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
-  "positionId": "9b7d5c88-6a78-0c0f-fe33-1fd8237604b8",
-  "notes": "Expresses strong interest in enterprise architecture."
-}
-```
-
-* **Success Response (201 Created)**:
-```json
-{
-  "data": {
-    "id": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
-    "organizationId": "df368955-d081-442c-a7a7-8d392be561f7",
-    "candidateId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
-    "positionId": "9b7d5c88-6a78-0c0f-fe33-1fd8237604b8",
-    "currentStage": {
-      "stageCode": "APPLIED",
-      "name": "Application Received"
-    },
-    "status": "applied",
-    "appliedAt": "2026-09-14T10:15:00.000Z"
-  },
-  "meta": {
-    "requestId": "req-recruitment-app-01"
-  }
-}
-```
-
-* **Error Codes**:
-  - `404 NOT_FOUND`: Candidate or position does not exist in `:orgId`.
-  - `409 CONFLICT`: Candidate already has an active application for this position.
-  - `422 UNPROCESSABLE_ENTITY`: Position is not in `open` status.
-
----
-
-#### `POST /api/v1/organizations/:orgId/recruitment/applications/:id/reject`
-Rejects an application. This is a terminal state for the specific application; the candidate remains in `active` status and eligible for other or future applications.
-
-* **Request Body**:
-```json
-{
-  "reason": "Insufficient experience in PostgreSQL query optimization."
-}
-```
-
-* **Success Response (200 OK)**:
-```json
-{
-  "data": {
-    "applicationId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
-    "status": "rejected",
-    "rejectedAt": "2026-09-14T10:18:00.000Z",
-    "candidateStatus": "active"
-  },
-  "meta": {
-    "requestId": "req-recruitment-app-reject"
-  }
-}
-```
-
----
-
-### 2.4 Application Stage Triage & Evaluations
+### 2.2 Stage Triage & Evaluations
 
 #### `POST /api/v1/organizations/:orgId/recruitment/applications/:id/stages/:stageId/evaluate`
-Records a stage outcome. M8 Evaluation Engine is authoritative for formal scorecards; this endpoint links an `evaluationId` or records lightweight non-evaluative triage notes.
+Records stage completion and feedback.
+* For **external candidates**: `notes` and `status` are submitted directly to M13. `evaluationId` MUST be null.
+* For **existing-person candidates** (`internal_person_id IS NOT NULL`): `evaluationId` pointing to an M8 Evaluation MAY be provided.
 
-* **Request Body**:
+* **Request Body (External Candidate)**:
 ```json
 {
   "status": "passed",
-  "evaluationId": "c4d5e6f7-a8b9-0c1d-2e3f-4a5b6c7d8e9f",
-  "notes": "Passed live architecture review. Evaluation scorecard recorded in M8."
+  "notes": "Passed initial technical interview; strong understanding of PostgreSQL and Node.js."
 }
 ```
 
@@ -283,7 +168,7 @@ Records a stage outcome. M8 Evaluation Engine is authoritative for formal scorec
   "data": {
     "stageId": "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f",
     "status": "passed",
-    "evaluationId": "c4d5e6f7-a8b9-0c1d-2e3f-4a5b6c7d8e9f",
+    "evaluationId": null,
     "completedAt": "2026-09-14T10:25:00.000Z"
   },
   "meta": {
@@ -294,7 +179,70 @@ Records a stage outcome. M8 Evaluation Engine is authoritative for formal scorec
 
 ---
 
-### 2.5 Employment Offers
+### 2.3 Candidate Trials
+
+#### `POST /api/v1/organizations/:orgId/recruitment/applications/:id/trial`
+Schedules an operational audition trial for an application.
+
+* **Request Body**:
+```json
+{
+  "startDate": "2026-09-20",
+  "endDate": "2026-10-04",
+  "mentorId": "7f5b3a66-4e56-8a8d-dc11-9db6015482f6",
+  "objectives": "Implement prototype feature in Billing BU; participate in daily standups."
+}
+```
+
+* **Success Response (201 Created)**:
+```json
+{
+  "data": {
+    "id": "d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a",
+    "applicationId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+    "startDate": "2026-09-20",
+    "endDate": "2026-10-04",
+    "status": "scheduled",
+    "mentorId": "7f5b3a66-4e56-8a8d-dc11-9db6015482f6"
+  },
+  "meta": {
+    "requestId": "req-recruitment-trial-01"
+  }
+}
+```
+
+---
+
+#### `POST /api/v1/organizations/:orgId/recruitment/applications/:id/trial/complete`
+Concludes a candidate trial. For external candidates, deliverables and qualitative verdict are recorded natively in M13 (`deliverablesSummary` and `outcomeNotes`).
+
+* **Request Body**:
+```json
+{
+  "deliverablesSummary": "Submitted PR #402 containing complete multi-tenant test suite.",
+  "outcomeNotes": "Exceeded expectations; strong code quality and self-sufficiency."
+}
+```
+
+* **Success Response (200 OK)**:
+```json
+{
+  "data": {
+    "trialId": "d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a",
+    "status": "completed",
+    "deliverablesSummary": "Submitted PR #402 containing complete multi-tenant test suite.",
+    "outcomeNotes": "Exceeded expectations; strong code quality and self-sufficiency.",
+    "completedAt": "2026-09-14T10:28:00.000Z"
+  },
+  "meta": {
+    "requestId": "req-recruitment-trial-complete"
+  }
+}
+```
+
+---
+
+### 2.4 Employment Offers
 
 #### `POST /api/v1/organizations/:orgId/recruitment/applications/:id/offer`
 Issues a formal compensation offer. Transitions `application.status` to `offered`. Only one offer may be in `draft` or `issued` status for an application.
@@ -362,7 +310,7 @@ Records candidate acceptance of an employment offer. Marks `offer.status = 'acce
 
 ---
 
-### 2.6 Authoritative Candidate Conversion & Hiring
+### 2.5 Authoritative Candidate Conversion & Hiring
 
 #### `POST /api/v1/organizations/:orgId/recruitment/applications/:id/hire`
 The single authoritative conversion operation. Converts an accepted candidate into an M2 `Person` and creates an M2 `Employment` contract atomically. Automatically withdraws all other active applications for the same candidate.

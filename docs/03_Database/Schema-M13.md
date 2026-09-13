@@ -19,7 +19,7 @@ All tables follow established DeVoc OS database conventions:
 
 ## 1. Table Reusability vs. New Entity Analysis
 
-M13 is an upstream talent funnel engine that introduces 7 dedicated recruitment entities while delegating all operational execution to existing M1–M12 tables:
+M13 is an upstream talent funnel engine that introduces 7 dedicated recruitment entities while delegating operational execution to existing M1–M12 tables:
 
 | Domain Area | Table Name | Status | Rationale |
 |---|---|---|---|
@@ -28,14 +28,14 @@ M13 is an upstream talent funnel engine that introduces 7 dedicated recruitment 
 | **Pipeline Taxonomies** | `recruitment_pipeline_stages`| **NEW (M13)** | Tenant-scoped configurable recruitment milestone stages |
 | **Application Funnel** | `recruitment_applications` | **NEW (M13)** | Candidate ↔ Position multi-stage application instances |
 | **Stage History** | `recruitment_application_stages`| **NEW (M13)** | Timeline log of stage progression, meeting and evaluation links |
-| **Candidate Trials** | `recruitment_trials` | **NEW (M13)** | Time-boxed operational trial periods linking assignments and reviews |
+| **Candidate Trials** | `recruitment_trials` | **NEW (M13)** | Time-boxed operational trial periods (audition deliverables for external candidates; M3/M5/M8 for internal candidates) |
 | **Employment Offers** | `recruitment_offers` | **NEW (M13)** | Compensation proposals and terms extended prior to hiring |
 | **Organization Structure**| `business_units`, `departments`, `teams` | **REUSED (M1)** | Target organizational units for positions |
 | **Personnel & Roles** | `people`, `roles`, `employments` | **REUSED (M2)** | Target roles, hiring managers, interviewers, and converted hire records |
-| **Assignments** | `assignments` | **REUSED (M3)** | Project/task assignments during candidate trials (for candidates with M2 identity) |
-| **Work Records** | `work_records` | **REUSED (M5)** | Real operational work logging during candidate trials (for candidates with M2 identity) |
+| **Assignments** | `assignments` | **REUSED (M3)** | Project/task assignments during candidate trials (usable ONLY for candidates with an M2 Person identity) |
+| **Work Records** | `work_records` | **REUSED (M5)** | Real operational work logging during candidate trials (usable ONLY for candidates with an M2 Person identity) |
 | **Meeting Logistics** | `meetings` | **REUSED (M6)** | Interview scheduling and panel logistics |
-| **Formal Evaluations** | `evaluations`, `evaluation_templates` | **REUSED (M8)** | Structured scorecards, assessments, and trial evaluations |
+| **Formal Evaluations** | `evaluations`, `evaluation_templates` | **REUSED (M8)** | Structured scorecards, assessments, and trial evaluations (usable ONLY for candidates with an M2 Person identity or post-hire) |
 | **Financial Commitments**| `financial_obligations` | **REUSED (M9)** | Scheduled compensation budgets or sign-on commitments |
 | **Audit & Outbox** | `audit_logs`, `event_outbox` | **REUSED (M10)** | Administrative audit records and transactional event dispatch |
 | **Analytics Metrics** | `analytics_metrics` | **REUSED (M11)** | Metrics configuration and snapshot storage for recruitment KPIs |
@@ -257,7 +257,7 @@ CREATE TABLE IF NOT EXISTS recruitment_application_stages (
     stage_id UUID NOT NULL REFERENCES recruitment_pipeline_stages(id) ON DELETE RESTRICT,
     status VARCHAR(50) NOT NULL DEFAULT 'in_progress',
     evaluator_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
-    evaluation_id UUID NULL, -- Polymorphic reference to evaluations(id) in M8
+    evaluation_id UUID NULL, -- Optional reference to evaluations(id) in M8 (usable ONLY if candidate is an existing M2 Person)
     meeting_id UUID NULL,    -- Polymorphic reference to meetings(id) in M6
     notes TEXT NULL,         -- Lightweight triage comments (formal scorecards reside in M8)
     started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -282,7 +282,7 @@ CREATE INDEX IF NOT EXISTS idx_recruitment_app_stages_meeting
 
 ### 3.6 Table: `recruitment_trials`
 
-Manages practical audition periods using real organizational assignments and milestone assessments.
+Manages practical audition periods using recruitment-specific deliverable summaries for external candidates, and real assignments for existing personnel.
 
 ```sql
 CREATE TABLE IF NOT EXISTS recruitment_trials (
@@ -293,10 +293,11 @@ CREATE TABLE IF NOT EXISTS recruitment_trials (
     end_date DATE NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'scheduled',
     objectives TEXT NULL,
-    outcome_notes TEXT NULL,
+    deliverables_summary TEXT NULL, -- Audition outputs submitted by external candidate
+    outcome_notes TEXT NULL,        -- Qualitative feedback and verdict recorded by trial mentor
     mentor_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
-    assignment_id UUID NULL, -- Polymorphic reference to assignments(id) in M3 (if candidate holds M2 Person identity)
-    evaluation_id UUID NULL, -- Polymorphic reference to evaluations(id) in M8
+    assignment_id UUID NULL,       -- Reference to assignments(id) in M3 (usable ONLY if candidate has an M2 Person identity)
+    evaluation_id UUID NULL,       -- Reference to evaluations(id) in M8 (usable ONLY if candidate has an M2 Person identity)
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 

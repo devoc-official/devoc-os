@@ -56,14 +56,14 @@ Organization Boundary (Multi-Tenant Scoped: /api/v1/organizations/:orgId/recruit
   │     ├── Candidate ↔ Position Relationship (authoritative for hiring process)
   │     ├── Authoritative Status Enum (applied, screening, assessment, interview, trial, decision, offered, hired, rejected, withdrawn)
   │     └── Multi-Stage Application History (recruitment_application_stages)
-  │           ├── Screening Triage
-  │           ├── Formal Assessments (delegated to M8 Evaluation Engine via evaluation_id)
+  │           ├── Screening & Resume Triage (notes field)
+  │           ├── Formal Assessments (delegated to M8 Evaluation Engine via evaluation_id ONLY if candidate is existing Person)
   │           └── Interview Sessions (delegated to M6 Meetings via meeting_id)
   │
   ├── Trials (recruitment_trials)
   │     ├── Time-Boxed Audition Period (objectives, timeline, mentor)
-  │     ├── Formal Audition Review (delegated to M8 Evaluation Engine via evaluation_id)
-  │     └── Operational Assignments & Work (M3 / M5 for candidates possessing an authorized M2 Person identity)
+  │     ├── Audition Deliverables & Outcome Notes (native recruitment fields for external candidates)
+  │     └── Operational Assignments & M8 Reviews (M3 / M5 / M8 ONLY if candidate holds an authorized M2 Person identity)
   │
   ├── Offers (recruitment_offers)
   │     ├── Compensation Terms, Frequency, Proposed Start Date
@@ -135,8 +135,8 @@ Valid Transitions:
 * `draft` $\rightarrow$ `open`, `archived`
 * `open` $\rightarrow$ `paused`, `closed`, `archived`
 * `paused` $\rightarrow$ `open`, `closed`, `archived`
-* `closed` $\rightarrow$ `archived` (**terminal closure**; reopening a closed position is disallowed to protect M11 time-to-hire analytics; new hiring needs require drafting a new position).
-* `archived` $\rightarrow$ Terminal (no further transitions permitted).
+* `closed` $\rightarrow$ `archived` (**hiring-terminal state**; reopening a closed position is disallowed to protect M11 time-to-fill analytics; new hiring needs require drafting a new position).
+* `archived` $\rightarrow$ Lifecycle-terminal state (no further transitions permitted).
 
 ---
 
@@ -219,9 +219,9 @@ Tracks the historical progression, timeline dates, and subsystem integration poi
   - `stage_id` (UUID FK $\rightarrow$ `recruitment_pipeline_stages`).
   - `status`: `scheduled`, `in_progress`, `passed`, `failed`, `skipped`.
   - `evaluator_id` (UUID FK $\rightarrow$ M2 `people`).
-  - `evaluation_id` (UUID, optional reference to M8 `evaluations`).
+  - `evaluation_id` (UUID, optional reference to M8 `evaluations`; **usable strictly when candidate has an M2 Person identity**).
   - `meeting_id` (UUID, optional reference to M6 `meetings`).
-  - `notes` (text, lightweight recruitment triage notes only; formal scoring and rubrics reside strictly in M8).
+  - `notes` (text, lightweight recruitment triage notes for external candidates or screening comments).
   - `started_at`, `completed_at`.
 
 ---
@@ -236,14 +236,15 @@ Represents a formal candidate audition or practical probation period.
   - `start_date`, `end_date` (date range, start $\le$ end).
   - `status`: `scheduled`, `active`, `completed`, `terminated`.
   - `objectives` (text, trial scope and deliverable criteria).
+  - `deliverables_summary` (text, summary of audition outputs submitted by candidate).
+  - `outcome_notes` (text, mentor verdict and qualitative feedback).
   - `mentor_id` (UUID FK $\rightarrow$ M2 `people`, assigned trial mentor/supervisor).
-  - `assignment_id` (UUID, optional reference to M3 `assignments` for candidates with an M2 identity).
-  - `evaluation_id` (UUID, reference to M8 `evaluations` for trial performance review).
-  - `outcome_notes` (text).
+  - `assignment_id` (UUID, optional reference to M3 `assignments`; **usable strictly when candidate has an M2 Person identity**).
+  - `evaluation_id` (UUID, optional reference to M8 `evaluations`; **usable strictly when candidate has an M2 Person identity**).
 
-#### Candidate Trial Identity Boundary (Option C Resolution)
-* **External Candidates**: Auditions are managed through milestone deliverables evaluated via M8 `evaluations`. External candidates do **NOT** receive shadow or temporary Person records, and do not directly log M5 `work_records` or receive M3 `assignments`. This preserves the strict `Candidate ≠ Person` invariant.
-* **Internal Candidates / Contracted Auditions**: Candidates who already hold an authorized M2 `person_id` (e.g., internal transfers, existing students, or contractors with formal M2 trial contracts) have their `person_id` linked to M3 `assignments` and M5 `work_records`.
+#### Candidate Trial Identity & Evaluation Boundary Resolution
+* **External Candidates (No M2 Person)**: Trial auditions track objectives, candidate deliverable outputs (`deliverables_summary`), mentor feedback (`outcome_notes`), and completion status natively within `recruitment_trials`. External candidates do **NOT** receive shadow Person records, M3 assignments, M5 work records, or M8 evaluations. This preserves `Candidate ≠ Person` and M8 Person-target constraints absolutely.
+* **Existing-Person Candidates (`internal_person_id IS NOT NULL`)**: Candidates who already hold an authorized M2 `person_id` (e.g., internal transfers, existing students, or contractors) have their `person_id` linked to M3 `assignments`, M5 `work_records`, and M8 `evaluations`.
 
 ---
 
@@ -358,14 +359,15 @@ Every recruitment operation enforces strict tenant isolation:
 | **Hiring Requisition** | M13 Recruitment | `recruitment_positions` table |
 | **Application Funnel** | M13 Recruitment | `recruitment_applications`, `recruitment_application_stages` |
 | **Pipeline Taxonomy** | M13 Recruitment | `recruitment_pipeline_stages` master data |
-| **Lightweight Triage** | M13 Recruitment | `notes` field in `recruitment_application_stages` |
-| **Formal Assessments** | M8 Evaluation Engine | Linked `evaluation_id` pointing to M8 `evaluations` |
-| **Interview Logistics** | M6 Meetings Engine | Linked `meeting_id` pointing to M6 `meetings` |
-| **Interview Scorecard** | M8 Evaluation Engine | Linked `evaluation_id` pointing to M8 `evaluations` |
-| **Trial Audition Review**| M8 Evaluation Engine | Linked `evaluation_id` pointing to M8 `evaluations` |
-| **Trial Assignments** | M3 Assignment Engine | Linked `assignment_id` (only for candidates with M2 Person identity) |
-| **Trial Work Activity** | M5 Work Engine | Standard `work_records` (only for candidates with M2 Person identity) |
-| **Learning Tracks** | M7 Learning Engine | Formal enrollment requires M2 Person; candidates are assessed via M8 |
+| **Triage & Screening Notes** | M13 Recruitment | `notes` field in `recruitment_application_stages` |
+| **External Trial Deliverables**| M13 Recruitment | `deliverables_summary` & `outcome_notes` in `recruitment_trials` |
+| **Formal Assessments** | M8 Evaluation Engine | Linked `evaluation_id` (usable ONLY for existing-Person candidates or post-hire) |
+| **Interview Logistics** | M6 Meetings Engine | Linked `meeting_id` pointing to M6 `meetings` (evaluators are M2 `people`) |
+| **Interview Scorecard** | M8 Evaluation Engine | Linked `evaluation_id` (usable ONLY for existing-Person candidates or post-hire) |
+| **Trial Audition Review**| M8 Evaluation Engine | Linked `evaluation_id` (usable ONLY for existing-Person candidates or post-hire) |
+| **Trial Assignments** | M3 Assignment Engine | Linked `assignment_id` (usable ONLY for existing-Person candidates) |
+| **Trial Work Activity** | M5 Work Engine | Standard `work_records` (usable ONLY for existing-Person candidates) |
+| **Learning Tracks** | M7 Learning Engine | Formal enrollment requires M2 Person; candidates are assessed via M13/M8 |
 | **Offer Commitments** | M9 Finance Engine | Linked `financial_obligation_id` for approved upfront obligations |
 | **Personnel Identity** | M2 People Engine | Converted `people` record upon hire |
 | **Employment Contract** | M2 People Engine | Converted `employments` record upon hire |
@@ -405,7 +407,7 @@ All domain events conform to M10 event definitions and are published strictly po
 7. `recruitment.application.created`
 8. `recruitment.application.stage_changed`
 9. `recruitment.application.rejected`
-10. `recruitment.application.withdrawn` (emitted both on manual withdrawal and automatic concurrent withdrawal upon hire)
+10. `recruitment.application.withdrawn` (emitted on manual withdrawal and automatic concurrent withdrawal upon hire)
 11. `recruitment.trial.scheduled`
 12. `recruitment.trial.started`
 13. `recruitment.trial.completed`

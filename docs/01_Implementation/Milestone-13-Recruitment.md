@@ -18,8 +18,8 @@ Crucially, M13 bridges the gap between external talent and organizational person
   - Candidate identity management and sourcing (`recruitment_candidates`) with decoupled candidate stance (`active`, `hired`, `archived`).
   - Configurable multi-stage recruitment pipelines (`recruitment_pipeline_stages`, `recruitment_applications`).
   - Authoritative 10-state application machine (`applied`, `screening`, `assessment`, `interview`, `trial`, `decision`, `offered`, `hired`, `rejected`, `withdrawn`).
-  - Screening, technical assessment, and interview session coordination linking M8 Evaluations and M6 Meetings without data duplication.
-  - Practical candidate trials (`recruitment_trials`) bounded by Option C (deliverable reviews for external candidates, M3/M5 assignments for candidates holding an authorized M2 Person identity).
+  - Screening, technical assessment, and interview session coordination linking M8 Evaluations and M6 Meetings without data duplication, while respecting identity boundaries (M8 evaluations, M3 assignments, M5 work records apply ONLY to candidates holding an authorized M2 Person identity; external candidate auditions use native M13 deliverable summaries and triage notes).
+  - Practical candidate trials (`recruitment_trials`) bounded by audition deliverable reviews for external candidates and M3/M5/M8 integration for existing personnel.
   - Compensation proposals and offer negotiations (`recruitment_offers`) with mutually exclusive terminal response states (`accepted`, `rejected`, `rescinded`, `expired`).
   - Single authoritative candidate conversion via explicit `POST .../applications/:id/hire` executing atomically under pessimistic concurrency locking.
   - Strict non-automated identity resolution: external candidate email collisions with existing personnel produce explicit `409 IDENTITY_CONFLICT` errors rather than silent linking.
@@ -47,10 +47,10 @@ Candidate (Applicant Profile)
    ▼
 Application (Pipeline Process)
    │
-   ├── Stage 1: Screening (Triage & Resume Review)
-   ├── Stage 2: Assessment (Delegated to M8 Evaluation Engine via evaluation_id)
-   ├── Stage 3: Interview (Delegated to M6 Meetings Engine & M8 Evaluation)
-   ├── Stage 4: Trial (Deliverable Review in M8; M3/M5 only if candidate holds M2 Person)
+   ├── Stage 1: Screening (Triage & Resume Review Notes)
+   ├── Stage 2: Assessment (M8 Evaluation Engine via evaluation_id ONLY if candidate is existing Person)
+   ├── Stage 3: Interview (Delegated to M6 Meetings Engine; M8 Evaluation if candidate is existing Person)
+   ├── Stage 4: Trial (Deliverables & Outcome Notes in M13; M3/M5/M8 ONLY if candidate holds M2 Person)
    └── Stage 5: Decision & Offer
          │
          ├── Offer Issued (application.status = offered)
@@ -88,7 +88,7 @@ Core DeVoc Backbone (Person → Role → Assignment → Work → Evaluation → 
 * **`PositionEntity`**: Validates salary boundaries, openings count, target role references, headcount limits, and lifecycle state transitions (`draft` $\rightarrow$ `open` $\rightarrow$ `paused` $\rightarrow$ `closed` $\rightarrow$ `archived`). Closed requisitions cannot reopen.
 * **`CandidateEntity`**: Validates email format, phone format, sourcing channel, skills arrays, conversion pointer immutability, and decoupled status (`active`, `hired`, `archived`).
 * **`ApplicationEntity`**: Enforces pipeline progression, terminal states (`rejected`, `withdrawn`, `hired`), and active application uniqueness per position.
-* **`TrialEntity`**: Enforces date ranges, status transitions (`scheduled` $\rightarrow$ `active` $\rightarrow$ `completed` $\rightarrow$ `terminated`), and Option C identity boundaries.
+* **`TrialEntity`**: Enforces date ranges, status transitions (`scheduled` $\rightarrow$ `active` $\rightarrow$ `completed` $\rightarrow$ `terminated`), deliverables summary, and identity boundary constraints.
 * **`OfferEntity`**: Enforces positive compensation values, frequency validation, expiration logic, and mutually exclusive response states from `issued`.
 
 ### 3.2 Repositories (`src/modules/recruitment/infrastructure`)
@@ -102,8 +102,8 @@ Core DeVoc Backbone (Person → Role → Assignment → Work → Evaluation → 
 ### 3.3 Application Services (`src/modules/recruitment/application`)
 * **`PositionService`**: Requisition creation, publication, pausing, closing, and headcount reconciliation.
 * **`CandidateService`**: Candidate registration, profile enrichment, deduplication checks.
-* **`ApplicationService`**: Multi-stage funnel progression, screening evaluations, interview coordination (M6), technical assessments (M8), application withdrawals.
-* **`TrialService`**: Audition setup, mentor assignment, M8 review linkage.
+* **`ApplicationService`**: Multi-stage funnel progression, screening evaluations, interview coordination (M6), technical assessments (M8).
+* **`TrialService`**: Audition setup, mentor assignment, deliverable summary recording.
 * **`OfferService`**: Drafting, issuing, candidate response recording, M9 financial obligation binding.
 * **`HiringService`**: Single authoritative candidate conversion transaction into M2 `Person` and `Employment`, with explicit identity resolution and auto-withdrawal of concurrent applications.
 
@@ -116,10 +116,10 @@ Core DeVoc Backbone (Person → Role → Assignment → Work → Evaluation → 
 ## 4. Cross-Domain Subsystem Integration
 
 1. **People Engine (M2)**: Target roles (`roles`), interviewers/evaluators (`people`), and final conversion (`people`, `employments`). Internal candidates reference `internal_person_id` to prevent duplicate `people` records. Email collisions on external candidates require administrative resolution.
-2. **Assignment Engine (M3)**: Trial project/task assignments (`assignments`) only for candidates holding an authorized M2 Person identity.
-3. **Work Engine (M5)**: Trial activity logging (`work_records`) only for candidates holding an authorized M2 Person identity.
+2. **Assignment Engine (M3)**: Trial project/task assignments (`assignments`) ONLY for candidates holding an authorized M2 Person identity.
+3. **Work Engine (M5)**: Trial activity logging (`work_records`) ONLY for candidates holding an authorized M2 Person identity.
 4. **Meetings Engine (M6)**: Interview panel coordination (`meetings`).
-5. **Evaluation Engine (M8)**: Technical scorecards and trial evaluations (`evaluations`). M13 stores only `evaluation_id`, avoiding duplicate score/criteria columns.
+5. **Evaluation Engine (M8)**: Technical scorecards and trial evaluations (`evaluations`) ONLY for candidates holding an authorized M2 Person identity or post-hire personnel.
 6. **Finance Engine (M9)**: Planned compensation budget allocations (`financial_obligations`). Offers do not execute payroll.
 7. **Audit & Events (M10)**: Audit trail (`audit_logs`) and outbox event dispatch (`event_outbox`).
 8. **Analytics Engine (M11)**: Funnel metrics registration (`analytics_metrics`).
@@ -189,14 +189,14 @@ No domain event may ever be emitted to the in-process event bus before transacti
 * Position state transitions, salary validation, and headcount limit enforcement.
 * Candidate email normalization, profile validation, and decoupled status machine.
 * Application pipeline progression invariants and terminal states.
-* Trial date validation, Option C identity enforcement.
+* Trial date validation, Option C identity enforcement (deliverables for external; M3/M5/M8 for internal).
 * Offer compensation validation, mutually exclusive response states.
 
 ### Integration & API Tests
 * Requisition CRUD, publication lifecycle, and terminal closure.
 * Candidate registration and deduplication checks.
 * Application progression through stages.
-* Interview scheduling (M6) and assessment linkage (M8).
+* Interview scheduling (M6).
 * Offer issuance, rejection, revision, and acceptance.
 * Explicit atomic Candidate $\rightarrow$ Person conversion transaction with headcount row-locking (`FOR UPDATE`).
 * Concurrency test: simultaneous hire requests cannot exceed `openings_count`.
