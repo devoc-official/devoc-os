@@ -3,7 +3,6 @@
 ## API Specification Overview
 
 * **Canonical Base URL**: `/api/v1/organizations/:orgId/recruitment`
-* **Compatibility Gateway Alias**: `/api/v1/recruitment` (with `X-Organization-Id` header context). The canonical route is authoritative.
 * **Authentication**: Bearer JWT token required (`Authorization: Bearer <token>`).
 * **Tenant Scoping & Multi-Tenant Defense**: All operations require an authenticated user with valid tenant membership in `:orgId`. All referenced cross-domain entities (BUs, departments, teams, roles, people) are strictly validated for same-organization ownership. Cross-tenant access returns HTTP `404 Not Found`.
 * **Standard Response Envelope**:
@@ -298,7 +297,7 @@ Records a stage outcome. M8 Evaluation Engine is authoritative for formal scorec
 ### 2.5 Employment Offers
 
 #### `POST /api/v1/organizations/:orgId/recruitment/applications/:id/offer`
-Issues a formal compensation offer. Only one offer may be in `draft` or `issued` status for an application.
+Issues a formal compensation offer. Transitions `application.status` to `offered`. Only one offer may be in `draft` or `issued` status for an application.
 
 * **Request Body**:
 ```json
@@ -320,6 +319,7 @@ Issues a formal compensation offer. Only one offer may be in `draft` or `issued`
   "data": {
     "id": "e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b",
     "applicationId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+    "applicationStatus": "offered",
     "status": "issued",
     "baseSalary": 95000,
     "currency": "USD",
@@ -335,7 +335,7 @@ Issues a formal compensation offer. Only one offer may be in `draft` or `issued`
 ---
 
 #### `POST /api/v1/organizations/:orgId/recruitment/offers/:offerId/accept`
-Records candidate acceptance of an employment offer. This marks the offer as `accepted` (terminal) and marks the application as `eligible_for_hire` (`decision` status). It does **NOT** automatically convert the candidate.
+Records candidate acceptance of an employment offer. Marks `offer.status = 'accepted'`. `application.status` remains `offered`. This satisfies the prerequisite for the explicit `/hire` conversion operation without automatically converting the candidate.
 
 * **Request Body**:
 ```json
@@ -349,9 +349,9 @@ Records candidate acceptance of an employment offer. This marks the offer as `ac
 {
   "data": {
     "id": "e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b",
+    "applicationId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
     "status": "accepted",
-    "applicationStatus": "decision",
-    "isEligibleForHire": true,
+    "applicationStatus": "offered",
     "respondedAt": "2026-09-14T10:35:00.000Z"
   },
   "meta": {
@@ -365,7 +365,12 @@ Records candidate acceptance of an employment offer. This marks the offer as `ac
 ### 2.6 Authoritative Candidate Conversion & Hiring
 
 #### `POST /api/v1/organizations/:orgId/recruitment/applications/:id/hire`
-The single authoritative conversion operation. Converts an accepted candidate into an M2 `Person` and creates an M2 `Employment` contract atomically.
+The single authoritative conversion operation. Converts an accepted candidate into an M2 `Person` and creates an M2 `Employment` contract atomically. Automatically withdraws all other active applications for the same candidate.
+
+* **Eligibility Preconditions**:
+  1. `application.status == 'offered'`
+  2. Associated offer has `status == 'accepted'`
+  3. Position has available headcount: `hired_count < openings_count`
 
 * **Request Body**:
 ```json
@@ -384,6 +389,9 @@ The single authoritative conversion operation. Converts an accepted candidate in
     "employmentId": "0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d",
     "status": "hired",
     "hiredAt": "2026-09-14T10:40:00.000Z",
+    "withdrawnConcurrentApplications": [
+      "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f"
+    ],
     "positionStatus": "open",
     "positionHiredCount": 1,
     "positionOpeningsCount": 2
@@ -395,7 +403,8 @@ The single authoritative conversion operation. Converts an accepted candidate in
 ```
 
 * **Error Codes**:
-  - `400 VALIDATION_ERROR`: Offer is not in `accepted` status, or target position has no remaining openings.
+  - `400 VALIDATION_ERROR`: Application is not in `offered` status, or associated offer is not in `accepted` status, or target position has no available openings.
   - `403 FORBIDDEN`: Caller lacks `recruitment:decide` capability.
   - `404 NOT_FOUND`: Application or offer does not belong to `:orgId`.
+  - `409 IDENTITY_CONFLICT`: Candidate email matches an existing M2 Person in the organization, but candidate has no verified `internal_person_id`. Explicit administrative resolution required (no silent auto-linking).
   - `409 CONFLICT`: Application or candidate is already marked as `hired`.

@@ -2,7 +2,7 @@
 
 ## Status
 
-**Architecture Draft Revised — implementation pending.**
+**Architecture Draft — implementation pending.**
 
 ---
 
@@ -14,13 +14,16 @@ Crucially, M13 bridges the gap between external talent and organizational person
 
 ### Scope Boundaries
 * **In Scope**:
-  - Requisition lifecycle management (`recruitment_positions`) with strict headcount invariants ($0 \le \text{hired\_count} \le \text{openings\_count}$).
+  - Requisition lifecycle management (`recruitment_positions`) with strict headcount invariants ($0 \le \text{hired\_count} \le \text{openings\_count}$). Closed positions cannot reopen.
   - Candidate identity management and sourcing (`recruitment_candidates`) with decoupled candidate stance (`active`, `hired`, `archived`).
   - Configurable multi-stage recruitment pipelines (`recruitment_pipeline_stages`, `recruitment_applications`).
+  - Authoritative 10-state application machine (`applied`, `screening`, `assessment`, `interview`, `trial`, `decision`, `offered`, `hired`, `rejected`, `withdrawn`).
   - Screening, technical assessment, and interview session coordination linking M8 Evaluations and M6 Meetings without data duplication.
   - Practical candidate trials (`recruitment_trials`) bounded by Option C (deliverable reviews for external candidates, M3/M5 assignments for candidates holding an authorized M2 Person identity).
   - Compensation proposals and offer negotiations (`recruitment_offers`) with mutually exclusive terminal response states (`accepted`, `rejected`, `rescinded`, `expired`).
   - Single authoritative candidate conversion via explicit `POST .../applications/:id/hire` executing atomically under pessimistic concurrency locking.
+  - Strict non-automated identity resolution: external candidate email collisions with existing personnel produce explicit `409 IDENTITY_CONFLICT` errors rather than silent linking.
+  - Automatic concurrent active applications withdrawal (`candidate_hired_elsewhere`) during hiring conversion.
   - Canonical event emission via M10 transactional outbox (zero pre-commit publishing).
   - Recruitment operational metrics exposed to M11 Analytics.
 * **Out of Scope (Non-Goals)**:
@@ -48,19 +51,32 @@ Application (Pipeline Process)
    ├── Stage 2: Assessment (Delegated to M8 Evaluation Engine via evaluation_id)
    ├── Stage 3: Interview (Delegated to M6 Meetings Engine & M8 Evaluation)
    ├── Stage 4: Trial (Deliverable Review in M8; M3/M5 only if candidate holds M2 Person)
-   └── Stage 5: Decision & Offer (Mutually Exclusive Response States)
+   └── Stage 5: Decision & Offer
          │
-         ▼ (Offer Accepted -> Eligible for Hire)
-Single Authoritative Conversion (POST .../applications/:id/hire)
+         ├── Offer Issued (application.status = offered)
+         └── Offer Accepted (application.status remains offered)
+               │
+               ▼
+Explicit /hire Conversion Endpoint (POST /api/v1/organizations/:orgId/recruitment/applications/:id/hire)
    │
-   ├── Row-Level Lock on Position (SELECT ... FOR UPDATE)
-   ├── Verify Headcount Availability (hired_count + 1 <= openings_count)
-   ├── Provision / Link M2 Person (people)
-   ├── Create M2 Employment (employments)
-   ├── Record Audit Log (M10 AuditService)
-   └── Stage Outbox Event (recruitment.candidate.hired)
-         │
-         ▼
+   ├── 1. Row-Level Lock on Position (SELECT ... FOR UPDATE)
+   ├── 2. Validate application.status == 'offered' & offer.status == 'accepted'
+   ├── 3. Verify Headcount Availability (hired_count < openings_count)
+   ├── 4. Non-Automated Identity Resolution:
+   │       ├── IF internal_person_id: link existing M2 Person & insert Employment
+   │       ├── IF external & email matches existing Person: abort with 409 IDENTITY_CONFLICT
+   │       └── ELSE: insert new M2 Person & new M2 Employment
+   ├── 5. Transition Target Application & Candidate to 'hired'
+   ├── 6. Auto-Withdraw Concurrent Active Applications (candidate_hired_elsewhere)
+   ├── 7. Increment Position hired_count (if full -> status = 'closed')
+   ├── 8. Record Audit Logs (M10 AuditService)
+   └── 9. Stage Outbox Events (recruitment.candidate.hired, recruitment.application.withdrawn)
+COMMIT TRANSACTION
+   │
+   ▼
+Post-Commit Outbox Dispatch (eventBus.publish)
+   │
+   ▼
 Core DeVoc Backbone (Person → Role → Assignment → Work → Evaluation → Analytics)
 ```
 
@@ -79,27 +95,27 @@ Core DeVoc Backbone (Person → Role → Assignment → Work → Evaluation → 
 * `PositionRepository`: Requisition CRUD, status filtering, headcount concurrency updates (`FOR UPDATE`).
 * `CandidateRepository`: Candidate profile persistence, normalized email indexing, deduplication queries.
 * `PipelineStageRepository`: Master data queries for tenant pipeline sequences.
-* `ApplicationRepository`: Application queries, stage history tracking, candidate history aggregation.
+* `ApplicationRepository`: Application queries, stage history tracking, candidate history aggregation, concurrent active applications query.
 * `TrialRepository`: Audition scheduling and operational link persistence.
 * `OfferRepository`: Employment offer persistence, active offer constraints.
 
 ### 3.3 Application Services (`src/modules/recruitment/application`)
 * **`PositionService`**: Requisition creation, publication, pausing, closing, and headcount reconciliation.
 * **`CandidateService`**: Candidate registration, profile enrichment, deduplication checks.
-* **`ApplicationService`**: Multi-stage funnel progression, screening evaluations, interview coordination (M6), technical assessments (M8).
+* **`ApplicationService`**: Multi-stage funnel progression, screening evaluations, interview coordination (M6), technical assessments (M8), application withdrawals.
 * **`TrialService`**: Audition setup, mentor assignment, M8 review linkage.
 * **`OfferService`**: Drafting, issuing, candidate response recording, M9 financial obligation binding.
-* **`HiringService`**: Single authoritative candidate conversion transaction into M2 `Person` and `Employment`.
+* **`HiringService`**: Single authoritative candidate conversion transaction into M2 `Person` and `Employment`, with explicit identity resolution and auto-withdrawal of concurrent applications.
 
 ### 3.4 API Controllers & Routes (`src/modules/recruitment/api`)
-* Mounted canonically at `/api/v1/organizations/:orgId/recruitment/...`.
+* Mounted strictly at `/api/v1/organizations/:orgId/recruitment/...`.
 * Protected by `authenticate`, `resolveTenant`, and contextual permission checks (`requireCapability`).
 
 ---
 
 ## 4. Cross-Domain Subsystem Integration
 
-1. **People Engine (M2)**: Target roles (`roles`), interviewers/evaluators (`people`), and final conversion (`people`, `employments`). Internal candidates reference `internal_person_id` to prevent duplicate `people` records.
+1. **People Engine (M2)**: Target roles (`roles`), interviewers/evaluators (`people`), and final conversion (`people`, `employments`). Internal candidates reference `internal_person_id` to prevent duplicate `people` records. Email collisions on external candidates require administrative resolution.
 2. **Assignment Engine (M3)**: Trial project/task assignments (`assignments`) only for candidates holding an authorized M2 Person identity.
 3. **Work Engine (M5)**: Trial activity logging (`work_records`) only for candidates holding an authorized M2 Person identity.
 4. **Meetings Engine (M6)**: Interview panel coordination (`meetings`).
@@ -184,6 +200,8 @@ No domain event may ever be emitted to the in-process event bus before transacti
 * Offer issuance, rejection, revision, and acceptance.
 * Explicit atomic Candidate $\rightarrow$ Person conversion transaction with headcount row-locking (`FOR UPDATE`).
 * Concurrency test: simultaneous hire requests cannot exceed `openings_count`.
+* Identity conflict test: external candidate with email matching existing Person throws `409 IDENTITY_CONFLICT`.
+* Concurrent applications auto-withdrawal test: hiring on one application automatically withdraws other active applications for that candidate with reason `candidate_hired_elsewhere`.
 * Event transaction semantics (rollback $\rightarrow$ 0 events; commit $\rightarrow$ post-commit dispatch).
 
 ### Tenant Isolation Tests

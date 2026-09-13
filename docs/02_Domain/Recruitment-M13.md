@@ -17,11 +17,11 @@ Recruitment Pipeline (Screening → Assessment → Interview → Trial)
    ↓
 Decision
    ↓
-Offer (Accepted)
+Offer Issued (application.status = offered)
    ↓
-Application (Eligible for Hire)
+Offer Accepted (application.status remains offered)
    ↓
-Explicit Hire Operation (Single Conversion Authority)
+Explicit /hire Operation (Single Conversion Authority)
    ↓
 Person & Employment (M2)
    ↓
@@ -35,7 +35,7 @@ M13 operates as an autonomous talent funnel engine while delegating formal asses
 ## 2. Core Domain Model
 
 ```text
-Organization Boundary (Multi-Tenant Scoped)
+Organization Boundary (Multi-Tenant Scoped: /api/v1/organizations/:orgId/recruitment/...)
   │
   ├── Positions (recruitment_positions)
   │     ├── Target Role (M2 roles)
@@ -45,7 +45,7 @@ Organization Boundary (Multi-Tenant Scoped)
   │
   ├── Candidates (recruitment_candidates)
   │     ├── Profile, Resume, Skills, Source Channels
-  │     ├── Candidate Lifecycle (active → hired | archived)
+  │     ├── Candidate Lifecycle (active → hired → archived)
   │     └── Eventual Conversion Pointer (people.id)
   │
   ├── Pipeline Configuration (recruitment_pipeline_stages)
@@ -54,27 +54,29 @@ Organization Boundary (Multi-Tenant Scoped)
   │
   ├── Applications (recruitment_applications)
   │     ├── Candidate ↔ Position Relationship (authoritative for hiring process)
-  │     ├── Multi-Stage Application History (recruitment_application_stages)
-  │     │     ├── Screening Triage
-  │     │     ├── Formal Assessments (delegated to M8 Evaluation Engine via evaluation_id)
-  │     │     └── Interview Sessions (delegated to M6 Meetings via meeting_id)
-  │     └── Application Status Machine (applied → ... → decision → offered → hired | rejected | withdrawn)
+  │     ├── Authoritative Status Enum (applied, screening, assessment, interview, trial, decision, offered, hired, rejected, withdrawn)
+  │     └── Multi-Stage Application History (recruitment_application_stages)
+  │           ├── Screening Triage
+  │           ├── Formal Assessments (delegated to M8 Evaluation Engine via evaluation_id)
+  │           └── Interview Sessions (delegated to M6 Meetings via meeting_id)
   │
   ├── Trials (recruitment_trials)
   │     ├── Time-Boxed Audition Period (objectives, timeline, mentor)
-  │     ├── Formal Audition Review (delegated to M8 Evaluation Engine)
-  │     └── Operational Assignments & Work (M3 / M5 for candidates possessing an M2 Person identity)
+  │     ├── Formal Audition Review (delegated to M8 Evaluation Engine via evaluation_id)
+  │     └── Operational Assignments & Work (M3 / M5 for candidates possessing an authorized M2 Person identity)
   │
   ├── Offers (recruitment_offers)
   │     ├── Compensation Terms, Frequency, Proposed Start Date
   │     ├── Mutually Exclusive Response States (draft → issued → accepted | rejected | rescinded | expired)
   │     └── Financial Commitments (delegated to M9 Finance Engine via financial_obligation_id)
   │
-  └── Explicit Candidate Conversion Transaction
+  └── Explicit Candidate Conversion Transaction (Single Conversion Authority)
         ├── Single Authoritative Endpoint (POST .../applications/:id/hire)
         ├── Atomic Provisioning / Linking of M2 Person (people)
+        ├── Strict Non-Automated Identity Resolution (No Silent Email Merging)
         ├── Formal Contract Allocation in M2 (employments)
         ├── Headcount Concurrency Control (Pessimistic FOR UPDATE Locking)
+        ├── Concurrent Active Applications Auto-Withdrawal (candidate_hired_elsewhere)
         ├── Historical Linkage Preservation (recruitment_candidates.converted_person_id)
         └── Canonical Event Emission (recruitment.candidate.hired via M10 Outbox)
 ```
@@ -153,7 +155,7 @@ A **Candidate** represents an individual job applicant, prospective learner, or 
 
 #### Candidate vs. Application Lifecycle Rules
 1. **Candidate Status Decoupling**: Candidate status represents the overall relationship stance with the organization (`active`, `hired`, `archived`). It does **NOT** mirror individual application outcomes.
-2. **Rejections Do Not Reject Candidates**: When an application is rejected, `application.status` becomes `rejected`. The candidate remains `active` and fully eligible for concurrent applications or future requisitions.
+2. **Rejections Do Not Reject Candidates**: When an application is rejected, `application.status` moves to `rejected`. The candidate remains `active` and fully eligible for concurrent applications or future requisitions.
 3. **Immutability & Provenance**: Candidate records are append-oriented and never deleted; past candidates who reapply retain historical evaluations and past application outcomes.
 
 ---
@@ -177,12 +179,23 @@ Defines the structured, ordered milestones a candidate must complete within a re
 
 An **Application** links a `Candidate` to a specific `Position`. It is the **authoritative execution record** for an individual hiring process.
 
+* **Authoritative Status Enum (10 Canonical States)**:
+  - `applied`: Initial application received.
+  - `screening`: In initial resume review or recruiter triage.
+  - `assessment`: Undertaking technical or behavioral assessments.
+  - `interview`: Participating in structured interview panels.
+  - `trial`: Performing time-boxed practical audition.
+  - `decision`: Candidate review completed; pending offer decision.
+  - `offered`: Formal employment offer has been extended to candidate.
+  - `hired`: Explicit `/hire` conversion successfully completed.
+  - `rejected`: Application terminated due to unsuccessful evaluation.
+  - `withdrawn`: Application withdrawn by candidate or auto-withdrawn due to concurrent hire elsewhere.
 * **Fields**:
   - `id` (UUID), `organization_id` (UUID).
   - `candidate_id` (UUID FK $\rightarrow$ `recruitment_candidates`).
   - `position_id` (UUID FK $\rightarrow$ `recruitment_positions`).
   - `current_stage_id` (UUID FK $\rightarrow$ `recruitment_pipeline_stages`).
-  - `status`: `applied`, `screening`, `assessment`, `interview`, `trial`, `decision`, `offered`, `hired`, `rejected`, `withdrawn`.
+  - `status`: one of the 10 canonical states above.
   - `applied_at` (timestamp).
   - `rejection_reason`, `rejected_at`.
   - `withdrawn_reason`, `withdrawn_at`.
@@ -255,47 +268,60 @@ Represents the formal employment agreement and compensation proposal extended to
 
 #### Offer Lifecycle Rules
 ```text
-draft ──> issued ──┬──> accepted  (Terminal)
-                   ├──> rejected  (Terminal)
-                   ├──> rescinded (Terminal)
-                   └──> expired   (Terminal)
+draft ──> issued ──┬──> accepted  (terminal)
+                   ├──> rejected  (terminal)
+                   ├──> rescinded (terminal)
+                   └──> expired   (terminal)
 ```
 * Responses from `issued` are mutually exclusive and terminal.
 * Only one active offer (`draft` or `issued`) is permitted per application (enforced via partial unique index).
 * If terms are renegotiated after a terminal state, a new offer entity is created.
+* When an offer is `accepted`, `application.status` remains `offered`. The accepted offer serves as the eligibility condition for the explicit `/hire` operation.
 
 ---
 
 ## 4. Single Authoritative Candidate Conversion Workflow
 
-To eliminate competing hiring triggers, candidate conversion is initiated **only** via an explicit hiring endpoint:
+To eliminate competing hiring triggers, candidate conversion is initiated **only** via the explicit hiring endpoint:
 
-$$\text{Offer Accepted} \rightarrow \text{Application Marked Eligible for Hire} \rightarrow \text{Explicit POST .../hire} \rightarrow \text{Atomic Conversion Transaction}$$
+$$\text{Decision} \rightarrow \text{Offer Issued (application: offered)} \rightarrow \text{Offer Accepted (application: offered)} \rightarrow \text{Explicit POST .../hire} \rightarrow \text{Atomic Conversion}$$
 
 ```text
 POST /api/v1/organizations/:orgId/recruitment/applications/:id/hire
                                │
                                ▼
 BEGIN DATABASE TRANSACTION
- ├── 1. Lock Target Position Row (SELECT ... FOR UPDATE)
- ├── 2. Validate Application Status == 'decision' / stage == 'OFFER'
- ├── 3. Validate Accepted Offer Exists for Application
- ├── 4. Validate Headcount Availability: (hired_count + 1 <= openings_count)
- ├── 5. Resolve Person Identity:
- │       ├── IF internal_person_id IS NOT NULL OR Email Matches Existing Person:
- │       │     ├── Use existingPerson.id
+ ├── 1. Lock Target Position Row (SELECT ... FROM recruitment_positions WHERE id = $1 FOR UPDATE)
+ ├── 2. Validate Application Status: application.status == 'offered'
+ ├── 3. Validate Accepted Offer: Exactly one offer for application has status == 'accepted'
+ ├── 4. Validate Headcount Availability: (position.hired_count < position.openings_count)
+ ├── 5. Resolve Person Identity (Strict Non-Automated Rule):
+ │       ├── Case A: IF candidate.internal_person_id IS NOT NULL:
+ │       │     ├── Validate internal_person_id belongs to :orgId
+ │       │     ├── Use existingPerson.id = candidate.internal_person_id
  │       │     └── Insert M2 employments (new employment record for target role/unit)
- │       └── ELSE (New External Hire):
- │             ├── Insert M2 people (first_name, last_name, email, phone)
- │             └── Insert M2 employments (role_id, BU, department, start_date)
- ├── 6. Update recruitment_candidates:
- │       ├── converted_person_id = personId
- │       └── status = 'hired'
- ├── 7. Update recruitment_applications:
- │       ├── status = 'hired'
- │       └── hired_at = NOW()
- ├── 8. Update recruitment_positions:
- │       ├── hired_count = hired_count + 1
+ │       └── Case B: IF candidate.internal_person_id IS NULL:
+ │             ├── Check if any M2 Person in :orgId has matching normalized email
+ │             ├── IF match found:
+ │             │     └── ABORT transaction, return 409 IDENTITY_CONFLICT (No silent auto-linking)
+ │             └── ELSE:
+ │                   ├── Insert M2 people (first_name, last_name, email, phone)
+ │                   └── Insert M2 employments (role_id, BU, department, start_date)
+ ├── 6. Update Target Application & Candidate:
+ │       ├── recruitment_candidates.converted_person_id = personId
+ │       ├── recruitment_candidates.status = 'hired'
+ │       ├── recruitment_applications.status = 'hired'
+ │       └── recruitment_applications.hired_at = NOW()
+ ├── 7. Auto-Withdraw Concurrent Active Applications:
+ │       ├── For every other application of candidate_id where status NOT IN ('hired', 'rejected', 'withdrawn'):
+ │       │     ├── status = 'withdrawn'
+ │       │     ├── withdrawn_at = NOW()
+ │       │     ├── withdrawn_reason = 'candidate_hired_elsewhere'
+ │       │     ├── Record stage skip record in recruitment_application_stages
+ │       │     ├── Record Audit Log (APPLICATION_WITHDRAWN)
+ │       │     └── Stage Outbox Event (recruitment.application.withdrawn)
+ ├── 8. Update Position Headcount:
+ │       ├── recruitment_positions.hired_count = hired_count + 1
  │       └── IF hired_count == openings_count THEN status = 'closed', closed_at = NOW()
  ├── 9. Record Immutable Audit Log (AuditService.recordLog: RECRUITMENT_CANDIDATE_HIRED)
  └── 10. Stage Outbox Event (OutboxService.stageOutboxEvent: recruitment.candidate.hired)
@@ -379,7 +405,7 @@ All domain events conform to M10 event definitions and are published strictly po
 7. `recruitment.application.created`
 8. `recruitment.application.stage_changed`
 9. `recruitment.application.rejected`
-10. `recruitment.application.withdrawn`
+10. `recruitment.application.withdrawn` (emitted both on manual withdrawal and automatic concurrent withdrawal upon hire)
 11. `recruitment.trial.scheduled`
 12. `recruitment.trial.started`
 13. `recruitment.trial.completed`
