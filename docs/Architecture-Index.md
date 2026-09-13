@@ -15,6 +15,7 @@ This index is the primary navigation point for engineering documentation.
 - [Milestone 9 — Finance Engine](01_Implementation/Milestone-09-Finance.md)
 - [Milestone 10 — Audit & Events Hardening](01_Implementation/Milestone-10-Audit-Events.md)
 - [Milestone 11 — Analytics Engine](01_Implementation/Milestone-11-Analytics.md)
+- [Milestone 12 — Admin & Platform Management](01_Implementation/Milestone-12-Admin-Platform.md)
 
 ## Engineering Contracts & Security
 
@@ -29,6 +30,7 @@ This index is the primary navigation point for engineering documentation.
 - [Database Architecture & Schema M9](03_Database/Schema-M9.md)
 - [Database Architecture & Schema M10](03_Database/Schema-M10.md)
 - [Database Architecture & Schema M11](03_Database/Schema-M11.md)
+- [Database Architecture & Schema M12](03_Database/Schema-M12.md)
 - [REST API Architecture & Contracts M1](04_API/API-Contracts-M1.md)
 - [REST API Architecture & Contracts M2](04_API/API-Contracts-M2.md)
 - [REST API Architecture & Contracts M3](04_API/API-Contracts-M3.md)
@@ -40,6 +42,7 @@ This index is the primary navigation point for engineering documentation.
 - [REST API Architecture & Contracts M9](04_API/API-Contracts-M9.md)
 - [REST API Architecture & Contracts M10](04_API/API-Contracts-M10.md)
 - [REST API Architecture & Contracts M11](04_API/API-Contracts-M11.md)
+- [REST API Architecture & Contracts M12](04_API/API-Contracts-M12.md)
 - [Authentication, Tenant Resolution & Security](05_Security/Auth-And-Tenancy.md)
 
 ## AI Development & Workflow
@@ -60,6 +63,7 @@ This index is the primary navigation point for engineering documentation.
 - [Finance Domain — M9](02_Domain/Finance-M9.md)
 - [Audit & Events Domain — M10](02_Domain/Audit-Events-M10.md)
 - [Analytics Domain — M11](02_Domain/Analytics-M11.md)
+- [Admin & Platform Management Domain — M12](02_Domain/Admin-Platform-M12.md)
 
 ## Architecture Decisions (ADRs)
 
@@ -78,6 +82,7 @@ This index is the primary navigation point for engineering documentation.
 - [ADR-013 — Finance Engine](10_ADR/ADR-013-Finance-Engine.md)
 - [ADR-014 — Audit & Domain Events Hardening](10_ADR/ADR-014-Audit-Events-Hardening.md)
 - [ADR-015 — Analytics Engine](10_ADR/ADR-015-Analytics-Engine.md)
+- [ADR-016 — Admin & Platform Management](10_ADR/ADR-016-Admin-Platform-Management.md)
 
 ## Documentation Ownership
 
