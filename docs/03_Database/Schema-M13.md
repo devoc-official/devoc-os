@@ -27,13 +27,13 @@ M13 is an upstream talent funnel engine that introduces 7 dedicated recruitment 
 | **Candidate Identity** | `recruitment_candidates` | **NEW (M13)** | External applicant profile before conversion into organizational personnel |
 | **Pipeline Taxonomies** | `recruitment_pipeline_stages`| **NEW (M13)** | Tenant-scoped configurable recruitment milestone stages |
 | **Application Funnel** | `recruitment_applications` | **NEW (M13)** | Candidate ↔ Position multi-stage application instances |
-| **Stage History** | `recruitment_application_stages`| **NEW (M13)** | Historical log of evaluations, screenings, and subsystem links |
+| **Stage History** | `recruitment_application_stages`| **NEW (M13)** | Timeline log of stage progression, meeting and evaluation links |
 | **Candidate Trials** | `recruitment_trials` | **NEW (M13)** | Time-boxed operational trial periods linking assignments and reviews |
 | **Employment Offers** | `recruitment_offers` | **NEW (M13)** | Compensation proposals and terms extended prior to hiring |
 | **Organization Structure**| `business_units`, `departments`, `teams` | **REUSED (M1)** | Target organizational units for positions |
 | **Personnel & Roles** | `people`, `roles`, `employments` | **REUSED (M2)** | Target roles, hiring managers, interviewers, and converted hire records |
-| **Assignments** | `assignments` | **REUSED (M3)** | Project/task assignments during candidate trials |
-| **Work Records** | `work_records` | **REUSED (M5)** | Real operational work logging during candidate trials |
+| **Assignments** | `assignments` | **REUSED (M3)** | Project/task assignments during candidate trials (for candidates with M2 identity) |
+| **Work Records** | `work_records` | **REUSED (M5)** | Real operational work logging during candidate trials (for candidates with M2 identity) |
 | **Meeting Logistics** | `meetings` | **REUSED (M6)** | Interview scheduling and panel logistics |
 | **Formal Evaluations** | `evaluations`, `evaluation_templates` | **REUSED (M8)** | Structured scorecards, assessments, and trial evaluations |
 | **Financial Commitments**| `financial_obligations` | **REUSED (M9)** | Scheduled compensation budgets or sign-on commitments |
@@ -42,9 +42,42 @@ M13 is an upstream talent funnel engine that introduces 7 dedicated recruitment 
 
 ---
 
-## 2. DDL Schema Specifications
+## 2. Multi-Tenant Reference Validation Rules
 
-### 2.1 Table: `recruitment_positions`
+Ordinary foreign keys prove row existence, but do not inherently prove same-organization ownership across tables. To enforce strict multi-tenant boundaries without over-engineering complex multi-column composite foreign keys, M13 pairs relational foreign keys with **mandatory service-level tenant validation**:
+
+$$\text{Request Organization} = \text{M13 Entity Organization} = \text{Referenced Entity Organization}$$
+
+1. `recruitment_positions`:
+   - `business_unit_id` $\rightarrow$ must belong to same `organization_id`.
+   - `department_id` $\rightarrow$ must belong to same `organization_id`.
+   - `team_id` $\rightarrow$ must belong to same `organization_id`.
+   - `target_role_id` $\rightarrow$ must belong to same `organization_id`.
+   - `hiring_manager_id` $\rightarrow$ must belong to same `organization_id`.
+   - `recruiter_id` $\rightarrow$ must belong to same `organization_id`.
+2. `recruitment_applications`:
+   - `candidate_id` $\rightarrow$ must belong to same `organization_id`.
+   - `position_id` $\rightarrow$ must belong to same `organization_id`.
+   - `current_stage_id` $\rightarrow$ must belong to same `organization_id`.
+3. `recruitment_application_stages`:
+   - `application_id` $\rightarrow$ must belong to same `organization_id`.
+   - `stage_id` $\rightarrow$ must belong to same `organization_id`.
+   - `evaluator_id` $\rightarrow$ must belong to same `organization_id`.
+4. `recruitment_trials`:
+   - `application_id` $\rightarrow$ must belong to same `organization_id`.
+   - `mentor_id` $\rightarrow$ must belong to same `organization_id`.
+5. `recruitment_offers`:
+   - `application_id` $\rightarrow$ must belong to same `organization_id`.
+   - `position_id` $\rightarrow$ must belong to same `organization_id`.
+   - `proposed_role_id` $\rightarrow$ must belong to same `organization_id`.
+
+Any mismatch results in an immediate `404 Not Found` response.
+
+---
+
+## 3. DDL Schema Specifications
+
+### 3.1 Table: `recruitment_positions`
 
 Stores approved hiring requisitions and headcount goals.
 
@@ -60,7 +93,7 @@ CREATE TABLE IF NOT EXISTS recruitment_positions (
     target_role_id UUID NULL REFERENCES roles(id) ON DELETE SET NULL,
     employment_type VARCHAR(50) NOT NULL DEFAULT 'full_time',
     openings_count INT NOT NULL DEFAULT 1 CHECK (openings_count >= 1),
-    hired_count INT NOT NULL DEFAULT 0 CHECK (hired_count >= 0),
+    hired_count INT NOT NULL DEFAULT 0 CHECK (hired_count >= 0 AND hired_count <= openings_count),
     hiring_manager_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
     recruiter_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
     description TEXT NULL,
@@ -98,7 +131,7 @@ CREATE INDEX IF NOT EXISTS idx_recruitment_positions_target_role
 
 ---
 
-### 2.2 Table: `recruitment_candidates`
+### 3.2 Table: `recruitment_candidates`
 
 Stores prospective applicant identities prior to personnel conversion.
 
@@ -123,7 +156,7 @@ CREATE TABLE IF NOT EXISTS recruitment_candidates (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT chk_recruitment_candidates_status CHECK (
-        status IN ('active', 'hired', 'rejected', 'withdrawn', 'archived')
+        status IN ('active', 'hired', 'archived')
     ),
     CONSTRAINT chk_recruitment_candidates_source CHECK (
         source IN ('career_page', 'job_board', 'referral', 'campus', 'agency', 'internal', 'direct', 'other')
@@ -135,13 +168,15 @@ CREATE INDEX IF NOT EXISTS idx_recruitment_candidates_org_email
     ON recruitment_candidates(organization_id, LOWER(email));
 CREATE INDEX IF NOT EXISTS idx_recruitment_candidates_org_status 
     ON recruitment_candidates(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_recruitment_candidates_internal_person 
+    ON recruitment_candidates(internal_person_id);
 CREATE INDEX IF NOT EXISTS idx_recruitment_candidates_converted_person 
     ON recruitment_candidates(converted_person_id);
 ```
 
 ---
 
-### 2.3 Table: `recruitment_pipeline_stages`
+### 3.3 Table: `recruitment_pipeline_stages`
 
 Defines the ordered stages of an organization's hiring funnel.
 
@@ -170,7 +205,7 @@ CREATE INDEX IF NOT EXISTS idx_recruitment_pipeline_stages_org_order
 
 ---
 
-### 2.4 Table: `recruitment_applications`
+### 3.4 Table: `recruitment_applications`
 
 Represents an active or completed application of a candidate for a position.
 
@@ -210,9 +245,9 @@ CREATE INDEX IF NOT EXISTS idx_recruitment_applications_pos_stage
 
 ---
 
-### 2.5 Table: `recruitment_application_stages`
+### 3.5 Table: `recruitment_application_stages`
 
-Tracks candidate progress, ratings, and external references at each stage.
+Tracks candidate progress, timestamps, and subsystem integration pointers without duplicating M6 or M8 data.
 
 ```sql
 CREATE TABLE IF NOT EXISTS recruitment_application_stages (
@@ -224,8 +259,7 @@ CREATE TABLE IF NOT EXISTS recruitment_application_stages (
     evaluator_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
     evaluation_id UUID NULL, -- Polymorphic reference to evaluations(id) in M8
     meeting_id UUID NULL,    -- Polymorphic reference to meetings(id) in M6
-    score NUMERIC(5, 2) NULL CHECK (score IS NULL OR (score >= 0 AND score <= 100)),
-    feedback TEXT NULL,
+    notes TEXT NULL,         -- Lightweight triage comments (formal scorecards reside in M8)
     started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     completed_at TIMESTAMPTZ NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -246,9 +280,9 @@ CREATE INDEX IF NOT EXISTS idx_recruitment_app_stages_meeting
 
 ---
 
-### 2.6 Table: `recruitment_trials`
+### 3.6 Table: `recruitment_trials`
 
-Manages practical audition periods using real organizational assignments.
+Manages practical audition periods using real organizational assignments and milestone assessments.
 
 ```sql
 CREATE TABLE IF NOT EXISTS recruitment_trials (
@@ -261,7 +295,7 @@ CREATE TABLE IF NOT EXISTS recruitment_trials (
     objectives TEXT NULL,
     outcome_notes TEXT NULL,
     mentor_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
-    assignment_id UUID NULL, -- Polymorphic reference to assignments(id) in M3
+    assignment_id UUID NULL, -- Polymorphic reference to assignments(id) in M3 (if candidate holds M2 Person identity)
     evaluation_id UUID NULL, -- Polymorphic reference to evaluations(id) in M8
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -285,9 +319,9 @@ CREATE INDEX IF NOT EXISTS idx_recruitment_trials_assignment
 
 ---
 
-### 2.7 Table: `recruitment_offers`
+### 3.7 Table: `recruitment_offers`
 
-Stores employment compensation proposals and their acceptance lifecycle.
+Stores employment compensation proposals and their mutually exclusive response lifecycle.
 
 ```sql
 CREATE TABLE IF NOT EXISTS recruitment_offers (

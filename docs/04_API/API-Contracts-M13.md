@@ -2,9 +2,10 @@
 
 ## API Specification Overview
 
-* **Base URL**: `/api/v1/recruitment` (with tenant context header `X-Organization-Id` or route prefix `/api/v1/organizations/:orgId/recruitment`).
+* **Canonical Base URL**: `/api/v1/organizations/:orgId/recruitment`
+* **Compatibility Gateway Alias**: `/api/v1/recruitment` (with `X-Organization-Id` header context). The canonical route is authoritative.
 * **Authentication**: Bearer JWT token required (`Authorization: Bearer <token>`).
-* **Tenant Scoping**: All operations require an authenticated user with valid tenant membership. Cross-tenant access returns HTTP `404 Not Found`.
+* **Tenant Scoping & Multi-Tenant Defense**: All operations require an authenticated user with valid tenant membership in `:orgId`. All referenced cross-domain entities (BUs, departments, teams, roles, people) are strictly validated for same-organization ownership. Cross-tenant access returns HTTP `404 Not Found`.
 * **Standard Response Envelope**:
 ```json
 {
@@ -30,51 +31,51 @@
 
 ---
 
-## 1. Summary of Endpoints
+## 1. Summary of Canonical Endpoints
 
-| Method | Endpoint | Description | Required Capability |
+| Method | Canonical Endpoint | Description | Required Capability |
 |---|---|---|---|
 | **POSITIONS** | | | |
-| `POST` | `/api/v1/recruitment/positions` | Create a new job requisition | `recruitment:create` |
-| `GET` | `/api/v1/recruitment/positions` | List requisitions with filters | `recruitment:view` |
-| `GET` | `/api/v1/recruitment/positions/:id` | Get details of a position | `recruitment:view` |
-| `PATCH`| `/api/v1/recruitment/positions/:id` | Update position attributes | `recruitment:manage` |
-| `POST` | `/api/v1/recruitment/positions/:id/open` | Open position for hiring | `recruitment:manage` |
-| `POST` | `/api/v1/recruitment/positions/:id/pause` | Temporarily pause hiring | `recruitment:manage` |
-| `POST` | `/api/v1/recruitment/positions/:id/close` | Close position | `recruitment:manage` |
-| `POST` | `/api/v1/recruitment/positions/:id/archive` | Archive position | `recruitment:manage` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/positions` | Create a new job requisition | `recruitment:create` |
+| `GET` | `/api/v1/organizations/:orgId/recruitment/positions` | List requisitions with filters | `recruitment:view` |
+| `GET` | `/api/v1/organizations/:orgId/recruitment/positions/:id` | Get details of a position | `recruitment:view` |
+| `PATCH`| `/api/v1/organizations/:orgId/recruitment/positions/:id` | Update position attributes | `recruitment:manage` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/positions/:id/open` | Open position for hiring | `recruitment:manage` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/positions/:id/pause` | Temporarily pause hiring | `recruitment:manage` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/positions/:id/close` | Close position (terminal) | `recruitment:manage` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/positions/:id/archive`| Archive position | `recruitment:manage` |
 | **CANDIDATES** | | | |
-| `POST` | `/api/v1/recruitment/candidates` | Create a candidate profile | `recruitment:create` |
-| `GET` | `/api/v1/recruitment/candidates` | List candidates with filters | `recruitment:view` |
-| `GET` | `/api/v1/recruitment/candidates/:id` | Get candidate profile & history | `recruitment:view` |
-| `PATCH`| `/api/v1/recruitment/candidates/:id` | Update candidate metadata | `recruitment:manage` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/candidates` | Create a candidate profile | `recruitment:create` |
+| `GET` | `/api/v1/organizations/:orgId/recruitment/candidates` | List candidates with filters | `recruitment:view` |
+| `GET` | `/api/v1/organizations/:orgId/recruitment/candidates/:id` | Get candidate profile & history | `recruitment:view` |
+| `PATCH`| `/api/v1/organizations/:orgId/recruitment/candidates/:id` | Update candidate metadata | `recruitment:manage` |
 | **PIPELINE STAGES** | | | |
-| `GET` | `/api/v1/recruitment/stages` | List configured pipeline stages | `recruitment:view` |
-| `POST` | `/api/v1/recruitment/stages` | Create custom pipeline stage | `recruitment:admin` |
-| `PATCH`| `/api/v1/recruitment/stages/:id` | Update stage name or order | `recruitment:admin` |
+| `GET` | `/api/v1/organizations/:orgId/recruitment/stages` | List configured pipeline stages | `recruitment:view` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/stages` | Create custom pipeline stage | `recruitment:admin` |
+| `PATCH`| `/api/v1/organizations/:orgId/recruitment/stages/:id` | Update stage name or order | `recruitment:admin` |
 | **APPLICATIONS** | | | |
-| `POST` | `/api/v1/recruitment/applications` | Apply candidate to position | `recruitment:create` |
-| `GET` | `/api/v1/recruitment/applications` | List applications with filters | `recruitment:view` |
-| `GET` | `/api/v1/recruitment/applications/:id` | Get application details & stages| `recruitment:view` |
-| `POST` | `/api/v1/recruitment/applications/:id/advance` | Advance application to next stage| `recruitment:manage` |
-| `POST` | `/api/v1/recruitment/applications/:id/reject` | Reject application | `recruitment:decide` |
-| `POST` | `/api/v1/recruitment/applications/:id/withdraw` | Withdraw application | `recruitment:manage` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/applications` | Apply candidate to position | `recruitment:create` |
+| `GET` | `/api/v1/organizations/:orgId/recruitment/applications` | List applications with filters | `recruitment:view` |
+| `GET` | `/api/v1/organizations/:orgId/recruitment/applications/:id` | Get application details & timeline| `recruitment:view` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/advance`| Advance application to next stage| `recruitment:manage` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/reject` | Reject application (terminal) | `recruitment:decide` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/withdraw`| Withdraw application (terminal)| `recruitment:manage` |
 | **STAGE ASSESSMENTS & MEETINGS** | | | |
-| `POST` | `/api/v1/recruitment/applications/:id/stages/:stageId/evaluate` | Record evaluation / link M8 | `recruitment:assess` |
-| `POST` | `/api/v1/recruitment/applications/:id/stages/:stageId/schedule-interview`| Schedule meeting via M6 | `recruitment:manage` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/stages/:stageId/evaluate` | Record triage / link M8 | `recruitment:assess` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/stages/:stageId/schedule-interview`| Schedule meeting via M6 | `recruitment:manage` |
 | **TRIALS** | | | |
-| `POST` | `/api/v1/recruitment/applications/:id/trial` | Schedule candidate trial | `recruitment:manage` |
-| `GET` | `/api/v1/recruitment/applications/:id/trial` | Get active trial details | `recruitment:view` |
-| `POST` | `/api/v1/recruitment/applications/:id/trial/start` | Activate trial & M3 assignment | `recruitment:manage` |
-| `POST` | `/api/v1/recruitment/applications/:id/trial/complete`| Conclude trial with M8 review | `recruitment:manage` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/trial` | Schedule candidate trial | `recruitment:manage` |
+| `GET` | `/api/v1/organizations/:orgId/recruitment/applications/:id/trial` | Get active trial details | `recruitment:view` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/trial/start` | Activate trial audition | `recruitment:manage` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/trial/complete`| Conclude trial with M8 review | `recruitment:manage` |
 | **OFFERS** | | | |
-| `POST` | `/api/v1/recruitment/applications/:id/offer` | Issue formal employment offer | `recruitment:offer` |
-| `GET` | `/api/v1/recruitment/applications/:id/offer` | Get active offer details | `recruitment:view` |
-| `POST` | `/api/v1/recruitment/offers/:offerId/accept` | Record offer acceptance | `recruitment:offer` |
-| `POST` | `/api/v1/recruitment/offers/:offerId/reject` | Record offer rejection | `recruitment:offer` |
-| `POST` | `/api/v1/recruitment/offers/:offerId/rescind`| Rescind issued offer | `recruitment:offer` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/offer` | Issue formal employment offer | `recruitment:offer` |
+| `GET` | `/api/v1/organizations/:orgId/recruitment/applications/:id/offer` | Get active offer details | `recruitment:view` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/offers/:offerId/accept` | Record offer acceptance | `recruitment:offer` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/offers/:offerId/reject` | Record offer decline (terminal)| `recruitment:offer` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/offers/:offerId/rescind`| Rescind issued offer (terminal)| `recruitment:offer` |
 | **HIRING CONVERSION** | | | |
-| `POST` | `/api/v1/recruitment/applications/:id/hire` | Convert candidate to Person (M2)| `recruitment:decide` |
+| `POST` | `/api/v1/organizations/:orgId/recruitment/applications/:id/hire` | Explicit atomic candidate conversion | `recruitment:decide` |
 
 ---
 
@@ -82,7 +83,7 @@
 
 ### 2.1 Positions
 
-#### `POST /api/v1/recruitment/positions`
+#### `POST /api/v1/organizations/:orgId/recruitment/positions`
 Creates a new recruitment requisition in `draft` status.
 
 * **Request Body**:
@@ -129,20 +130,21 @@ Creates a new recruitment requisition in `draft` status.
 * **Error Codes**:
   - `400 VALIDATION_ERROR`: Invalid currency, negative openings, or minSalary > maxSalary.
   - `403 FORBIDDEN`: Missing `recruitment:create` capability.
+  - `404 NOT_FOUND`: Target BU, department, team, role, or manager does not belong to `:orgId`.
   - `409 CONFLICT`: Position code already exists in tenant organization.
 
 ---
 
-#### `POST /api/v1/recruitment/positions/:id/open`
-Transitions position status from `draft` or `paused` to `open`.
+#### `POST /api/v1/organizations/:orgId/recruitment/positions/:id/close`
+Transitions position status from `open` or `paused` to `closed`. Closed requisitions cannot be reopened; reopening is prohibited to maintain clean time-to-fill analytics in M11.
 
 * **Success Response (200 OK)**:
 ```json
 {
   "data": {
     "id": "9b7d5c88-6a78-0c0f-fe33-1fd8237604b8",
-    "status": "open",
-    "openedAt": "2026-09-14T10:05:00.000Z"
+    "status": "closed",
+    "closedAt": "2026-09-14T10:05:00.000Z"
   },
   "meta": {
     "requestId": "req-recruitment-pos-02"
@@ -154,7 +156,7 @@ Transitions position status from `draft` or `paused` to `open`.
 
 ### 2.2 Candidates
 
-#### `POST /api/v1/recruitment/candidates`
+#### `POST /api/v1/organizations/:orgId/recruitment/candidates`
 Registers a new candidate in the recruitment engine.
 
 * **Request Body**:
@@ -195,7 +197,7 @@ Registers a new candidate in the recruitment engine.
 
 ### 2.3 Applications
 
-#### `POST /api/v1/recruitment/applications`
+#### `POST /api/v1/organizations/:orgId/recruitment/applications`
 Initiates an application for a candidate against a position.
 
 * **Request Body**:
@@ -229,19 +231,19 @@ Initiates an application for a candidate against a position.
 ```
 
 * **Error Codes**:
+  - `404 NOT_FOUND`: Candidate or position does not exist in `:orgId`.
   - `409 CONFLICT`: Candidate already has an active application for this position.
   - `422 UNPROCESSABLE_ENTITY`: Position is not in `open` status.
 
 ---
 
-#### `POST /api/v1/recruitment/applications/:id/advance`
-Advances an application to the next pipeline stage.
+#### `POST /api/v1/organizations/:orgId/recruitment/applications/:id/reject`
+Rejects an application. This is a terminal state for the specific application; the candidate remains in `active` status and eligible for other or future applications.
 
 * **Request Body**:
 ```json
 {
-  "nextStageId": "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f",
-  "notes": "Passed technical assessment with 92/100 score."
+  "reason": "Insufficient experience in PostgreSQL query optimization."
 }
 ```
 
@@ -250,47 +252,43 @@ Advances an application to the next pipeline stage.
 {
   "data": {
     "applicationId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
-    "previousStageCode": "TECH_ASSESSMENT",
-    "currentStageCode": "PANEL_INTERVIEW",
-    "status": "interview",
-    "updatedAt": "2026-09-14T10:20:00.000Z"
+    "status": "rejected",
+    "rejectedAt": "2026-09-14T10:18:00.000Z",
+    "candidateStatus": "active"
   },
   "meta": {
-    "requestId": "req-recruitment-app-02"
+    "requestId": "req-recruitment-app-reject"
   }
 }
 ```
 
 ---
 
-### 2.4 Candidate Trials
+### 2.4 Application Stage Triage & Evaluations
 
-#### `POST /api/v1/recruitment/applications/:id/trial`
-Schedules an operational audition trial for an application.
+#### `POST /api/v1/organizations/:orgId/recruitment/applications/:id/stages/:stageId/evaluate`
+Records a stage outcome. M8 Evaluation Engine is authoritative for formal scorecards; this endpoint links an `evaluationId` or records lightweight non-evaluative triage notes.
 
 * **Request Body**:
 ```json
 {
-  "startDate": "2026-09-20",
-  "endDate": "2026-10-04",
-  "mentorId": "7f5b3a66-4e56-8a8d-dc11-9db6015482f6",
-  "objectives": "Implement prototype feature in Billing BU; participate in daily standups."
+  "status": "passed",
+  "evaluationId": "c4d5e6f7-a8b9-0c1d-2e3f-4a5b6c7d8e9f",
+  "notes": "Passed live architecture review. Evaluation scorecard recorded in M8."
 }
 ```
 
-* **Success Response (201 Created)**:
+* **Success Response (200 OK)**:
 ```json
 {
   "data": {
-    "id": "d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a",
-    "applicationId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
-    "startDate": "2026-09-20",
-    "endDate": "2026-10-04",
-    "status": "scheduled",
-    "mentorId": "7f5b3a66-4e56-8a8d-dc11-9db6015482f6"
+    "stageId": "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f",
+    "status": "passed",
+    "evaluationId": "c4d5e6f7-a8b9-0c1d-2e3f-4a5b6c7d8e9f",
+    "completedAt": "2026-09-14T10:25:00.000Z"
   },
   "meta": {
-    "requestId": "req-recruitment-trial-01"
+    "requestId": "req-recruitment-stage-eval"
   }
 }
 ```
@@ -299,8 +297,8 @@ Schedules an operational audition trial for an application.
 
 ### 2.5 Employment Offers
 
-#### `POST /api/v1/recruitment/applications/:id/offer`
-Issues a formal compensation offer.
+#### `POST /api/v1/organizations/:orgId/recruitment/applications/:id/offer`
+Issues a formal compensation offer. Only one offer may be in `draft` or `issued` status for an application.
 
 * **Request Body**:
 ```json
@@ -336,13 +334,13 @@ Issues a formal compensation offer.
 
 ---
 
-#### `POST /api/v1/recruitment/offers/:offerId/accept`
-Records candidate acceptance of an employment offer.
+#### `POST /api/v1/organizations/:orgId/recruitment/offers/:offerId/accept`
+Records candidate acceptance of an employment offer. This marks the offer as `accepted` (terminal) and marks the application as `eligible_for_hire` (`decision` status). It does **NOT** automatically convert the candidate.
 
 * **Request Body**:
 ```json
 {
-  "responseNotes": "Candidate formally signed digital offer letter."
+  "responseNotes": "Candidate signed digital offer letter."
 }
 ```
 
@@ -352,20 +350,22 @@ Records candidate acceptance of an employment offer.
   "data": {
     "id": "e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b",
     "status": "accepted",
+    "applicationStatus": "decision",
+    "isEligibleForHire": true,
     "respondedAt": "2026-09-14T10:35:00.000Z"
   },
   "meta": {
-    "requestId": "req-recruitment-offer-02"
+    "requestId": "req-recruitment-offer-accept"
   }
 }
 ```
 
 ---
 
-### 2.6 Candidate Conversion & Hiring
+### 2.6 Authoritative Candidate Conversion & Hiring
 
-#### `POST /api/v1/recruitment/applications/:id/hire`
-Converts an accepted candidate into an authoritative organizational `Person` and creates an `Employment` record in M2.
+#### `POST /api/v1/organizations/:orgId/recruitment/applications/:id/hire`
+The single authoritative conversion operation. Converts an accepted candidate into an M2 `Person` and creates an M2 `Employment` contract atomically.
 
 * **Request Body**:
 ```json
@@ -395,6 +395,7 @@ Converts an accepted candidate into an authoritative organizational `Person` and
 ```
 
 * **Error Codes**:
-  - `400 VALIDATION_ERROR`: Offer must be in `accepted` status before conversion can occur.
-  - `409 CONFLICT`: Candidate or application is already marked as `hired`.
-  - `403 FORBIDDEN`: Missing `recruitment:decide` capability.
+  - `400 VALIDATION_ERROR`: Offer is not in `accepted` status, or target position has no remaining openings.
+  - `403 FORBIDDEN`: Caller lacks `recruitment:decide` capability.
+  - `404 NOT_FOUND`: Application or offer does not belong to `:orgId`.
+  - `409 CONFLICT`: Application or candidate is already marked as `hired`.
