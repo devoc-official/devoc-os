@@ -8,13 +8,27 @@ All endpoints require JWT Authentication (`Authorization: Bearer <token>`) and m
 
 ---
 
-## Authorization & Tenant Scoping
+## Authorization & Security Rules
 
 * **Tenant Isolation**: All operations mandate `organization_id`. Requests attempting to access metric definitions, results, or saved reports belonging to another tenant return HTTP `404 Not Found`.
 * **Required Permissions**:
   * `analytics:view`: Required to list metric definitions, view metric definitions, compute metric results, list saved reports, and execute saved reports.
   * `analytics:define`: Required to create, update, or deactivate metric definitions and saved reports.
-* **Contextual Authorization**: Metric computation and report execution automatically enforce the user's authorized organizational scope (`Role + Business Unit + Team + Project`). Source queries filter underlying domain records to match resources within the user's authorized context.
+* **Per-Execution Contextual Scope Security**:
+  * Metric computation and report execution automatically enforce the user's authorized organizational scope (`Role + Business Unit + Team + Project`).
+  * Setting `isPublic = true` on a saved report shares the report layout definition (title, metrics list, dimensions) with authorized tenant users. It does **NOT** grant data access to underlying domain metrics or physical tables.
+  * Every report execution independently re-evaluates the caller's organizational scope against every underlying metric and source table.
+
+---
+
+## Declarative Safety Validation
+
+All `calculationSpec` structures submitted via `POST /api/v1/analytics/metrics` are validated against the **Analytics Source Registry**:
+* Allowed source entities: `work_logs`, `projects`, `tasks`, `learning_enrollments`, `learning_programs`, `evaluations`, `criterion_results`, `financial_obligations`, `financial_transactions`, `financial_budgets`, `people`, `employments`, `assignments`, `meetings`, `audit_logs`.
+* Allowed operators: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `between`, `is_null`, `is_not_null`.
+* Allowed aggregations: `COUNT`, `SUM`, `AVERAGE`, `MIN`, `MAX`, `RATE`, `PERCENTAGE`, `WEIGHTED_AGGREGATION`, `TREND`.
+
+Requests containing unlisted table names, column names, raw SQL fragments, or dynamic code snippets return HTTP `400 Bad Request`.
 
 ---
 
@@ -26,7 +40,7 @@ All endpoints require JWT Authentication (`Authorization: Bearer <token>`) and m
   "data": {},
   "meta": {
     "requestId": "req-uuid",
-    "timestamp": "2026-09-13T18:40:00Z"
+    "timestamp": "2026-09-13T18:50:00Z"
   }
 }
 ```
@@ -41,7 +55,7 @@ All endpoints require JWT Authentication (`Authorization: Bearer <token>`) and m
   },
   "meta": {
     "requestId": "req-uuid",
-    "timestamp": "2026-09-13T18:40:00Z"
+    "timestamp": "2026-09-13T18:50:00Z"
   }
 }
 ```
@@ -66,11 +80,11 @@ Creates a new declarative metric specification for the tenant.
   "metricType": "PERCENTAGE",
   "calculationSpec": {
     "numerator": {
-      "sourceEntity": "enrollments",
+      "sourceEntity": "learning_enrollments",
       "filter": { "status": "completed", "is_placed": true }
     },
     "denominator": {
-      "sourceEntity": "enrollments",
+      "sourceEntity": "learning_enrollments",
       "filter": { "status": "completed" }
     }
   },
@@ -90,21 +104,21 @@ Creates a new declarative metric specification for the tenant.
     "metricType": "PERCENTAGE",
     "calculationSpec": {
       "numerator": {
-        "sourceEntity": "enrollments",
+        "sourceEntity": "learning_enrollments",
         "filter": { "status": "completed", "is_placed": true }
       },
       "denominator": {
-        "sourceEntity": "enrollments",
+        "sourceEntity": "learning_enrollments",
         "filter": { "status": "completed" }
       }
     },
     "supportedDimensions": ["organization_id", "learning_program_id", "time_period"],
     "createdBy": "user-admin-uuid",
     "isActive": true,
-    "createdAt": "2026-09-13T18:40:00.000Z",
-    "updatedAt": "2026-09-13T18:40:00.000Z"
+    "createdAt": "2026-09-13T18:50:00.000Z",
+    "updatedAt": "2026-09-13T18:50:00.000Z"
   },
-  "meta": { "requestId": "req-m11-1", "timestamp": "2026-09-13T18:40:00Z" }
+  "meta": { "requestId": "req-m11-1", "timestamp": "2026-09-13T18:50:00Z" }
 }
 ```
 
@@ -113,7 +127,7 @@ Creates a new declarative metric specification for the tenant.
 ### 2. List Metric Definitions
 `GET /api/v1/analytics/metrics`
 
-Lists all active metric definitions for the organization.
+Lists active metric definitions for the organization.
 
 **Permission**: `analytics:view`
 
@@ -142,7 +156,7 @@ Lists all active metric definitions for the organization.
     "limit": 50,
     "offset": 0,
     "requestId": "req-m11-2",
-    "timestamp": "2026-09-13T18:40:00Z"
+    "timestamp": "2026-09-13T18:50:00Z"
   }
 }
 ```
@@ -167,16 +181,16 @@ Retrieves single metric definition by primary key.
     "domainModule": "learning",
     "metricType": "PERCENTAGE",
     "calculationSpec": {
-      "numerator": { "sourceEntity": "enrollments", "filter": { "status": "completed", "is_placed": true } },
-      "denominator": { "sourceEntity": "enrollments", "filter": { "status": "completed" } }
+      "numerator": { "sourceEntity": "learning_enrollments", "filter": { "status": "completed", "is_placed": true } },
+      "denominator": { "sourceEntity": "learning_enrollments", "filter": { "status": "completed" } }
     },
     "supportedDimensions": ["organization_id", "learning_program_id", "time_period"],
     "createdBy": "user-admin-uuid",
     "isActive": true,
-    "createdAt": "2026-09-13T18:40:00.000Z",
-    "updatedAt": "2026-09-13T18:40:00.000Z"
+    "createdAt": "2026-09-13T18:50:00.000Z",
+    "updatedAt": "2026-09-13T18:50:00.000Z"
   },
-  "meta": { "requestId": "req-m11-3", "timestamp": "2026-09-13T18:40:00Z" }
+  "meta": { "requestId": "req-m11-3", "timestamp": "2026-09-13T18:50:00Z" }
 }
 ```
 
@@ -198,7 +212,8 @@ Computes metric result on-demand or retrieves a pre-computed historical snapshot
   "dimensionFilters": {
     "learning_program_id": "prog-fs-eng-uuid"
   },
-  "useSnapshot": false
+  "useSnapshot": false,
+  "calculationVersion": 1
 }
 ```
 
@@ -219,9 +234,11 @@ Computes metric result on-demand or retrieves a pre-computed historical snapshot
       "numeratorCount": 18,
       "denominatorCount": 21
     },
-    "calculatedAt": "2026-09-13T18:40:00.000Z"
+    "calculationVersion": 1,
+    "calculationRunId": "run-99b11a44-uuid",
+    "calculatedAt": "2026-09-13T18:50:00.000Z"
   },
-  "meta": { "requestId": "req-m11-4", "timestamp": "2026-09-13T18:40:00Z" }
+  "meta": { "requestId": "req-m11-4", "timestamp": "2026-09-13T18:50:00Z" }
 }
 ```
 
@@ -271,10 +288,10 @@ Saves a reusable report query layout for tenant users.
     "sortBy": [{ "field": "numericValue", "direction": "DESC" }],
     "createdBy": "user-admin-uuid",
     "isPublic": true,
-    "createdAt": "2026-09-13T18:40:00.000Z",
-    "updatedAt": "2026-09-13T18:40:00.000Z"
+    "createdAt": "2026-09-13T18:50:00.000Z",
+    "updatedAt": "2026-09-13T18:50:00.000Z"
   },
-  "meta": { "requestId": "req-m11-5", "timestamp": "2026-09-13T18:40:00Z" }
+  "meta": { "requestId": "req-m11-5", "timestamp": "2026-09-13T18:50:00Z" }
 }
 ```
 
@@ -297,10 +314,10 @@ Lists saved report configurations available to the caller within the organizatio
       "description": "Monthly report tracking placement rate and incoming revenue.",
       "metricIds": ["77a82b99-3c41-4822-a9e1-b841029c7821"],
       "isPublic": true,
-      "createdAt": "2026-09-13T18:40:00.000Z"
+      "createdAt": "2026-09-13T18:50:00.000Z"
     }
   ],
-  "meta": { "total": 1, "requestId": "req-m11-6", "timestamp": "2026-09-13T18:40:00Z" }
+  "meta": { "total": 1, "requestId": "req-m11-6", "timestamp": "2026-09-13T18:50:00Z" }
 }
 ```
 
@@ -309,7 +326,7 @@ Lists saved report configurations available to the caller within the organizatio
 ### 7. Execute Saved Report
 `POST /api/v1/analytics/reports/:id/execute`
 
-Executes a saved report query configuration, evaluating included metrics and returning grouped result sets.
+Executes a saved report query configuration, evaluating included metrics and returning grouped result sets scoped to caller's permissions.
 
 **Permission**: `analytics:view`
 
@@ -329,7 +346,7 @@ Executes a saved report query configuration, evaluating included metrics and ret
   "data": {
     "reportId": "rep-99b11a44-8c12-4211-9e45-123456789abc",
     "reportName": "Academy Placement & Finance Overview",
-    "executedAt": "2026-09-13T18:40:00.000Z",
+    "executedAt": "2026-09-13T18:50:00.000Z",
     "results": [
       {
         "metricCode": "KPI_PLACEMENT_RATE",
@@ -340,7 +357,7 @@ Executes a saved report query configuration, evaluating included metrics and ret
       }
     ]
   },
-  "meta": { "requestId": "req-m11-7", "timestamp": "2026-09-13T18:40:00Z" }
+  "meta": { "requestId": "req-m11-7", "timestamp": "2026-09-13T18:50:00Z" }
 }
 ```
 

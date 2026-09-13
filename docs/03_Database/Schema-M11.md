@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS analytics_metric_definitions (
     ),
     metric_type VARCHAR(50) NOT NULL CHECK (
         metric_type IN (
-            'COUNT', 'SUM', 'AVERAGE', 'RATE',
+            'COUNT', 'SUM', 'AVERAGE', 'MIN', 'MAX', 'RATE',
             'PERCENTAGE', 'WEIGHTED_AGGREGATION', 'TREND'
         )
     ),
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS analytics_metric_definitions (
 
 ### 2. Table: `analytics_metric_results`
 
-Stores computed metric snapshots for historical trend comparisons and pre-calculated aggregations:
+Stores append-only computed metric snapshots for historical trend comparisons and pre-calculated aggregations:
 
 ```sql
 CREATE TABLE IF NOT EXISTS analytics_metric_results (
@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS analytics_metric_results (
     dimension_values JSONB NOT NULL DEFAULT '{}'::jsonb,
     numeric_value NUMERIC(18, 4) NOT NULL DEFAULT 0.0000,
     details JSONB NULL,
+    calculation_version INT NOT NULL DEFAULT 1,
+    calculation_run_id UUID NOT NULL DEFAULT gen_random_uuid(),
     calculated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -98,9 +100,10 @@ Optimizes metric definition lookups, snapshot trend queries, and saved report ex
 CREATE INDEX IF NOT EXISTS idx_analytics_metrics_org ON analytics_metric_definitions(organization_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_metrics_domain ON analytics_metric_definitions(organization_id, domain_module);
 
--- Metric result snapshot indexes
+-- Metric result snapshot indexes (versioned append-only snapshots)
 CREATE INDEX IF NOT EXISTS idx_analytics_results_def ON analytics_metric_results(metric_definition_id, period_start DESC);
-CREATE INDEX IF NOT EXISTS idx_analytics_results_org_period ON analytics_metric_results(organization_id, period_type, period_start);
+CREATE INDEX IF NOT EXISTS idx_analytics_results_org_period ON analytics_metric_results(organization_id, period_type, period_start, calculation_version DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_results_run ON analytics_metric_results(calculation_run_id);
 
 -- Saved report indexes
 CREATE INDEX IF NOT EXISTS idx_analytics_reports_org ON analytics_reports(organization_id);
@@ -109,28 +112,29 @@ CREATE INDEX IF NOT EXISTS idx_analytics_reports_creator ON analytics_reports(or
 
 ---
 
-## Source Table Index Recommendations
+## Source Table Index Recommendations (Reconciled Physical Entities)
 
 To support high-throughput live analytical aggregations without full table scans, source transactional tables should maintain composite operational indexes:
 
 * `work_logs`: `(organization_id, work_category_id, created_at)`
-* `financial_transactions`: `(organization_id, status, direction, created_at)`
+* `financial_transactions`: `(organization_id, state, direction, created_at)`
 * `financial_obligations`: `(organization_id, state, created_at)`
-* `enrollments`: `(organization_id, status, created_at)`
+* `learning_enrollments`: `(organization_id, status, created_at)`
 * `tasks`: `(organization_id, status, created_at)`
-* `evaluations`: `(organization_id, status, evaluation_type_id, created_at)`
+* `evaluations`: `(organization_id, state, template_id, created_at)`
+* `criterion_results`: `(evaluation_id, criterion_id)`
 
 ---
 
-## Architectural Criteria for Future Warehouse / OLAP Migration
+## Triggers for Future Architecture Review (Data Warehouse)
 
-M11 uses PostgreSQL as the unified operational and analytical relational database. A separate analytical data warehouse (e.g., ClickHouse, Snowflake, DuckDB) is **explicitly deferred** until the following empirical performance thresholds are breached:
+PostgreSQL serves as the unified relational engine for operational CRUD and analytical queries. Introducing an out-of-band analytical data warehouse (e.g., ClickHouse, Snowflake, DuckDB) is deferred until the following empirical performance thresholds indicate a **Future Architecture Review**:
 
-1. **Transactional Contention**: Analytical queries cause measurable lock contention or CPU degradation affecting primary CRUD response times (e.g. API p99 latency exceeds 500ms).
-2. **Table Volume Threshold**: Source transactional tables (e.g., `work_logs`, `audit_logs`) exceed 10 million rows per tenant, rendering live PostgreSQL aggregation inefficient despite composite indexes.
-3. **Complex OLAP Requirements**: Requirements demand high-cardinality multi-dimensional OLAP cube slice-and-dice operations spanning multi-year historical datasets that cannot be served within 2 seconds.
+1. **Row Volume Threshold Trigger**: Transactional source tables (e.g. `work_logs`, `audit_logs`) exceed 10 million rows per organization tenant.
+2. **Performance Contention Trigger**: Live analytical query execution causes measurable lock contention or API p99 latency degradation (>500ms) on transactional CRUD workloads.
+3. **High-Cardinality OLAP Trigger**: Requirements demand complex multi-dimensional OLAP cube slice-and-dice over multi-year historical datasets that cannot be served within 2 seconds by indexed PostgreSQL queries.
 
-When any of these criteria are breached, a future milestone ADR will specify an out-of-band analytical replica or dedicated OLAP store fed asynchronously by the M10 Transactional Outbox.
+When triggered, an architectural review will evaluate an out-of-band analytical replica or dedicated OLAP store fed asynchronously via the M10 Transactional Outbox.
 
 ---
 *Document frozen for Milestone 11 – Analytics Database Schema.*

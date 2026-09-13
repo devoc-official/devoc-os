@@ -8,7 +8,7 @@
 
 Milestone 11 establishes a read-only, extensible, multi-tenant **Analytics Engine** for DeVoc OS. It provides decision-support insights, performance metrics, key performance indicators (KPIs), and saved reports across all established operational domains (Organization, People, Assignments, Projects/Tasks, Work, Meetings, Learning, Evaluation, Finance, Audit/Events) without duplicating operational entities or altering domain state.
 
-M11 is a read-oriented analytical milestone. It does NOT introduce external data warehouses (e.g., ClickHouse, Snowflake), message brokers (e.g., Kafka, RabbitMQ), BI platforms, microservices, AI/ML predictions, or dynamic SQL execution. It operates cleanly as a modular-monolith engine within PostgreSQL, using declarative metric specifications and contextual authorization.
+M11 is a read-oriented analytical milestone. It operates as a modular-monolith engine within PostgreSQL, using an explicit Analytics Source Registry, declarative metric specifications, parameter-bound SQL query building, and contextual authorization.
 
 ---
 
@@ -17,21 +17,21 @@ M11 is a read-oriented analytical milestone. It does NOT introduce external data
 ```text
                ┌─────────────────────────────────────────────────────────┐
                │    Operational Source of Truth (M1–M10 PostgreSQL)     │
-               │  people, assignments, projects, work, learning, finance │
+               │ work_logs, criterion_results, learning_enrollments, etc. │
                └────────────────────────────┬────────────────────────────┘
                                             │
-                                            │ Read-Only Queries (Tenant Scoped)
+                                            │ Parameterized Read-Only Queries (Allowlist Validated)
                                             ▼
                ┌─────────────────────────────────────────────────────────┐
                │              Analytics Computation Engine               │
-               │        (Declarative Spec Evaluator & Aggregator)         │
+               │   (Registry-Validated Spec Evaluator & Query Builder)   │
                └──────────────┬───────────────────────────┬──────────────┘
                               │                           │
-              Live Aggregation│                           │ Pre-computed Snapshot
+              Live Aggregation│                           │ Immutable Append-Only Snapshot
                               ▼                           ▼
                ┌─────────────────────────────┐  ┌─────────────────────────┐
                │    Live Metric Result       │  │ analytics_metric_results│
-               │  (Calculated On-Demand)     │  │   (Historical Trend)   │
+               │  (Calculated On-Demand)     │  │  (Versioned Historical) │
                └──────────────┬──────────────┘  └─────────────┬───────────┘
                               │                               │
                               └───────────────┬───────────────┘
@@ -43,143 +43,142 @@ M11 is a read-oriented analytical milestone. It does NOT introduce external data
 ```
 
 1. **Non-Authoritative & Read-Only**: Operational domain engines (M1–M10) remain the sole authoritative source of truth. Analytics computes derived views, aggregations, and trends; it never owns or mutates transactional entities.
-2. **Declarative Metric Specifications**: Metrics are defined via safe JSON calculation rules (`COUNT`, `SUM`, `AVERAGE`, `RATE`, `PERCENTAGE`, `WEIGHTED_AGGREGATION`, `TREND`). Unsafe string concatenation, dynamic raw SQL execution, and runtime code evaluation (`eval()`) are strictly prohibited.
-3. **Strict Multi-Tenant Scoping**: Every metric definition, metric result, snapshot, and saved report is bound to an `organization_id`. Cross-tenant queries return HTTP `404 Not Found`.
-4. **Contextual Scope-Bound Security**: Analytics access reuses the established DeVoc OS authorization model: `Role + Business Unit + Team + Project`. Users can only query metrics spanning domain resources to which they have authorized access.
-5. **Hybrid Computation Strategy**: Live query evaluation on indexed PostgreSQL tables is the primary execution path. Pre-computed snapshots (`analytics_metric_results`) are used exclusively for historical trend comparison and period-over-period snapshotting.
-6. **Auditability & Domain Event Consumption**: Changes to metric definitions and saved report configurations emit standard M10 domain events and produce immutable audit entries via `AuditService`. Analytics reads operational data but does not replace domain event logging.
+2. **Reconciled Physical Source Entities**: All analytics queries operate directly against established physical table names (`work_logs`, `criterion_results`, `learning_enrollments`, `learning_programs`, `financial_obligations`, `financial_transactions`, `financial_parties`, `finance_categories`, `financial_budgets`, `people`, `employments`, `assignments`, `projects`, `tasks`, `meetings`, `audit_logs`).
+3. **Declarative Metric Safety & Allowlist Registry**: Metrics are specified via an explicit Analytics Source Registry defining allowed entities, fields, operators, dimensions, joins, and aggregations. Raw SQL strings, dynamic SQL concatenation, and runtime code execution (`eval()`) are strictly prohibited. All execution resolves through a controlled parameter-bound query builder.
+4. **Strict Multi-Tenant Scoping**: Every metric definition, snapshot result, and saved report mandates `organization_id`. Cross-tenant queries return HTTP `404 Not Found`.
+5. **Contextual Scope-Bound Security**: Analytics access reuses the established DeVoc OS authorization model: `Role + Business Unit + Team + Project`. Setting `isPublic = true` on a saved report shares the report template configuration, NOT data access. Every report execution independently re-evaluates the executing user's authorized organizational scope against every underlying metric and source table.
+6. **Immutable Versioned Metric Snapshots**: Persisted rows in `analytics_metric_results` are strictly append-only and immutable. Recalculations append a new row with `calculation_version = previous_version + 1` and a unique `calculation_run_id`.
+7. **Auditability & Event Consumption**: Changes to metric definitions and saved report configurations emit standard M10 domain events and produce immutable audit entries via `AuditService`.
 
 ---
 
-## Domain Coverage & Source Mapping
+## Reconciled Source Domain Entities & Physical Table Mapping
 
-The Analytics Engine maps read-only queries across all operational engines:
+The Analytics Engine maps queries across established physical database tables:
 
-| Analytics Domain | Source Domain Entities | Key Analytical Scope |
-|------------------|------------------------|----------------------|
-| **People Analytics** | `people`, `user_identities`, `employments`, `skills` | Headcount, employment categories, skill distribution, manager ratios |
-| **Work Analytics** | `work_logs`, `work_categories`, `work_outcomes`, `work_evidence` | Hours logged, work category breakdown, outcome delivery rates, founder strategy hours |
-| **Project Analytics** | `projects`, `tasks`, `task_dependencies`, `project_owners` | Project completion velocity, task lead time, open vs closed tasks, milestone adherence |
-| **Learning Analytics** | `learning_programs`, `enrollments`, `learning_milestones`, `competencies`, `learning_reviews` | Enrollment rates, milestone completion speed, review approval rates, competency acquisition |
-| **Evaluation Analytics** | `evaluations`, `evaluation_templates`, `evaluation_criterion_results` | Qualitative score distributions, evaluation completion rates, mentor vs student ratings |
-| **Finance Analytics** | `financial_obligations`, `financial_transactions`, `financial_allocations`, `financial_budgets` | Revenue, collection rate, budget utilization, outstanding fee balances, refund rates |
-| **Organization Analytics** | `organizations`, `branches`, `business_units`, `departments`, `teams` | Business unit capacity allocation, department headcount, cross-BU project participation |
+| Operational Domain | Physical Source Tables | Reconciled Analytical Scope |
+|--------------------|------------------------|-----------------------------|
+| **Organization (M1)** | `organizations`, `branches`, `business_units`, `departments`, `teams`, `users` | Structural hierarchy, BU boundaries, team organization |
+| **People (M2)** | `people`, `user_identities`, `roles`, `person_roles`, `employments`, `skills`, `person_skills` | Headcount, employment types, manager reporting, skill inventory |
+| **Assignments (M3)** | `assignments` | Resource capacity allocation, person assignment tracking |
+| **Projects & Tasks (M4)** | `projects`, `project_business_units`, `project_owners`, `tasks`, `task_dependencies` | Project lifecycle, task velocity, lead times, priority distribution |
+| **Work (M5)** | `work_categories`, `work_logs`, `work_outcomes`, `work_evidence` | Hours logged, work category breakdown, outcome deliverable counts, strategy work |
+| **Meetings (M6)** | `meetings`, `meeting_participants`, `meeting_outcomes` | Scheduled vs actual meeting hours, decision outputs |
+| **Learning (M7)** | `learning_programs`, `learning_program_milestones`, `learning_activity_definitions`, `learning_enrollments`, `enrollment_milestones`, `learning_activities`, `learning_reviews`, `assessments`, `assessment_attempts` | Enrollment trends, completion velocity, review pass rates, assessment scores |
+| **Evaluation (M8)** | `evaluation_templates`, `evaluation_criteria`, `evaluations`, `evaluation_evaluators`, `criterion_results`, `evaluation_feedback`, `evaluation_outcomes`, `evaluation_history` | Qualitative/rating score distributions, completion rates, mentor evaluation ratings |
+| **Finance (M9)** | `finance_categories`, `financial_parties`, `financial_obligations`, `financial_obligation_items`, `financial_transactions`, `financial_allocations`, `financial_adjustments`, `financial_budgets` | Revenue, collection efficiency, budget utilization, payment modes, outstanding balances |
+| **Audit & Events (M10)** | `audit_logs`, `event_outbox`, `event_consumer_records`, `event_registry` | System mutation volume, audit activity counts, outbox delivery health |
 
 ---
 
-## KPI Framework Specifications
+## Analytics Source Registry & Declarative Safety Model
 
-KPIs are represented as declarative `analytics_metric_definitions` entries. The system natively supports DeVoc core KPIs without hard-coded domain models:
+The Analytics Source Registry defines the strict allowlist for metric specifications:
+
+```json
+{
+  "allowedEntities": [
+    "work_logs", "projects", "tasks", "learning_enrollments", "learning_programs",
+    "evaluations", "criterion_results", "financial_obligations", "financial_transactions",
+    "financial_budgets", "people", "employments", "assignments", "meetings", "audit_logs"
+  ],
+  "allowedOperators": ["eq", "neq", "gt", "gte", "lt", "lte", "in", "not_in", "between", "is_null", "is_not_null"],
+  "allowedAggregations": ["COUNT", "SUM", "AVERAGE", "MIN", "MAX", "RATE", "PERCENTAGE", "WEIGHTED_AGGREGATION", "TREND"],
+  "allowedDimensions": [
+    "organization_id", "branch_id", "business_unit_id", "department_id", "team_id",
+    "person_id", "role_id", "project_id", "task_id", "learning_program_id",
+    "evaluation_template_id", "category_id", "time_period"
+  ]
+}
+```
+
+Metric definitions violating this registry are rejected at validation time before database query construction.
+
+---
+
+## KPI Framework Specifications (Reconciled)
 
 ### 1. Placement Rate (Academy KPI)
 * **Code**: `KPI_PLACEMENT_RATE`
 * **Domain**: `learning`
-* **Formula Spec**: `(Count of Graduated Students Placed / Count of Completed Enrollments) * 100`
-* **Source Tables**: `enrollments`, `employments`
-* **Supported Dimensions**: `organization_id`, `learning_program_id`, `time_period`
+* **Formula Spec**: `(Count of Completed learning_enrollments with Placement / Count of Total Completed learning_enrollments) * 100`
+* **Physical Tables**: `learning_enrollments`, `employments`
+* **Dimensions**: `organization_id`, `learning_program_id`, `time_period`
 
 ### 2. Internship Rate (Academy KPI)
 * **Code**: `KPI_INTERNSHIP_RATE`
 * **Domain**: `learning`
-* **Formula Spec**: `(Count of Active Students Assigned to Internships / Count of Active Enrollments) * 100`
-* **Source Tables**: `enrollments`, `assignments`
-* **Supported Dimensions**: `organization_id`, `learning_program_id`, `business_unit_id`, `time_period`
+* **Formula Spec**: `(Count of Active learning_enrollments with Active Internship Assignment / Count of Total Active learning_enrollments) * 100`
+* **Physical Tables**: `learning_enrollments`, `assignments`
+* **Dimensions**: `organization_id`, `learning_program_id`, `business_unit_id`, `time_period`
 
 ### 3. Student Satisfaction (Academy KPI)
 * **Code**: `KPI_STUDENT_SATISFACTION`
 * **Domain**: `evaluation`
-* **Formula Spec**: `Average rating score across completed Student/Mentorship Evaluations`
-* **Source Tables**: `evaluations`, `evaluation_criterion_results`
-* **Supported Dimensions**: `organization_id`, `learning_program_id`, `person_id` (mentor), `time_period`
+* **Formula Spec**: `Average numeric value in criterion_results for evaluations linked to Student/Mentorship templates`
+* **Physical Tables**: `evaluations`, `criterion_results`, `evaluation_templates`
+* **Dimensions**: `organization_id`, `learning_program_id`, `person_id`, `time_period`
 
 ### 4. Completion Rate (Academy KPI)
 * **Code**: `KPI_COMPLETION_RATE`
 * **Domain**: `learning`
-* **Formula Spec**: `(Count of Completed Enrollments / Count of Total Closed Enrollments) * 100`
-* **Source Tables**: `enrollments`
-* **Supported Dimensions**: `organization_id`, `learning_program_id`, `time_period`
+* **Formula Spec**: `(Count of learning_enrollments where status = 'completed' / Count of Closed learning_enrollments) * 100`
+* **Physical Tables**: `learning_enrollments`
+* **Dimensions**: `organization_id`, `learning_program_id`, `time_period`
 
 ### 5. Alumni Success (Academy KPI)
 * **Code**: `KPI_ALUMNI_SUCCESS`
 * **Domain**: `people`
-* **Formula Spec**: `Count of Active Employment Assignments for Alumni / Total Alumni Count`
-* **Source Tables**: `people`, `employments`, `enrollments`
-* **Supported Dimensions**: `organization_id`, `learning_program_id`, `time_period`
+* **Formula Spec**: `Count of Active employments for Persons with Completed learning_enrollments / Total Completed Students`
+* **Physical Tables**: `people`, `employments`, `learning_enrollments`
+* **Dimensions**: `organization_id`, `learning_program_id`, `time_period`
 
 ### 6. Student Growth (Academy KPI)
 * **Code**: `KPI_STUDENT_GROWTH`
 * **Domain**: `learning`
-* **Formula Spec**: `((Current Period Enrollments - Previous Period Enrollments) / Previous Period Enrollments) * 100`
-* **Source Tables**: `enrollments`
-* **Supported Dimensions**: `organization_id`, `learning_program_id`, `time_period`
+* **Formula Spec**: `((Current Period learning_enrollments - Previous Period learning_enrollments) / Previous Period learning_enrollments) * 100`
+* **Physical Tables**: `learning_enrollments`
+* **Dimensions**: `organization_id`, `learning_program_id`, `time_period`
 
 ### 7. Revenue (Finance KPI)
 * **Code**: `KPI_REVENUE`
 * **Domain**: `finance`
-* **Formula Spec**: `Sum of Posted Financial Transactions where Direction = 'INCOMING'`
-* **Source Tables**: `financial_transactions`
-* **Supported Dimensions**: `organization_id`, `business_unit_id`, `department_id`, `finance_category_id`, `time_period`
+* **Formula Spec**: `Sum of amount in financial_transactions where direction = 'inflow' AND state = 'Posted'`
+* **Physical Tables**: `financial_transactions`, `financial_parties`, `finance_categories`
+* **Dimensions**: `organization_id`, `business_unit_id`, `department_id`, `category_id`, `time_period`
 
 ### 8. Founder Contribution (Work KPI)
 * **Code**: `KPI_FOUNDER_CONTRIBUTION`
 * **Domain**: `work`
-* **Formula Spec**: `Sum of Work Hours logged by Founders categorized as Strategy/Vision/Partnerships`
-* **Source Tables**: `work_logs`, `people`, `employments`
-* **Supported Dimensions**: `organization_id`, `business_unit_id`, `work_category_id`, `time_period`
+* **Formula Spec**: `Sum of duration_minutes in work_logs for Founders where work_category code IN ('STRATEGY', 'VISION', 'PARTNERSHIPS')`
+* **Physical Tables**: `work_logs`, `work_categories`, `people`, `employments`
+* **Dimensions**: `organization_id`, `business_unit_id`, `work_category_id`, `time_period`
 
 ---
 
-## Time Standardization & Aggregation Windows
+## Immutable Metric Snapshot Semantics
 
-1. **Storage Standardization**: All timestamp filtering and metric calculation boundaries operate in UTC (`TIMESTAMPTZ`).
-2. **Aggregation Intervals**:
-   * `DAY`: Truncated to `YYYY-MM-DD 00:00:00Z`.
-   * `WEEK`: Truncated to Monday `00:00:00Z`.
-   * `MONTH`: Truncated to first day of month `00:00:00Z`.
-   * `QUARTER`: Truncated to start of Q1/Q2/Q3/Q4 `00:00:00Z`.
-   * `YEAR`: Truncated to `YYYY-01-01 00:00:00Z`.
-   * `CUSTOM`: Bounded by exact `start_date` and `end_date` inputs.
-3. **Timezone Parameters**: API requests may supply a `timezone` offset parameter (e.g. `Asia/Kolkata` or `+05:30`) used strictly for formatting bucket labels in JSON responses.
+1. **Append-Only Immutability**: Rows in `analytics_metric_results` are strictly immutable. Updating existing historical snapshot rows in place is prohibited.
+2. **Versioned Recalculation**: Every snapshot record contains `calculation_version INT NOT NULL DEFAULT 1` and `calculation_run_id UUID NOT NULL`. Recalculating a historical period appends a new snapshot row with `calculation_version = previous_version + 1`.
+3. **Snapshot Selection**: Reports by default select the snapshot row with `MAX(calculation_version)` for a given target period/dimension combination, while retaining all earlier calculation versions for audit trail analysis.
 
 ---
 
-## Saved Reports Specification
+## Saved Report Visibility & Contextual Security
 
-A Saved Report (`analytics_reports`) captures reusable query configurations:
-
-```json
-{
-  "name": "Q3 Academy Placement & Revenue Performance",
-  "description": "Cross-domain evaluation of placement rates and incoming course fees for Q3.",
-  "metricIds": ["metric-placement-rate-id", "metric-revenue-id"],
-  "dimensions": ["business_unit_id", "learning_program_id"],
-  "filters": {
-    "business_unit_id": "bu-academy-uuid",
-    "status": "active"
-  },
-  "timeWindow": {
-    "periodType": "quarter",
-    "startDate": "2026-07-01T00:00:00Z",
-    "endDate": "2026-09-30T23:59:59Z"
-  },
-  "groupBy": ["learning_program_id"],
-  "sortBy": [{ "field": "numericValue", "direction": "DESC" }],
-  "isPublic": false
-}
-```
+1. **Configuration Visibility Only**: Setting `isPublic = true` on a saved report (`analytics_reports`) makes the report layout definition (title, metrics list, dimension grouping) visible to other tenant users.
+2. **No Data Access Bypass**: `isPublic = true` NEVER bypasses underlying dataset permissions.
+3. **Per-Execution Authorization**: Every report execution independently evaluates the executing user's `Role + Business Unit + Team + Project` against every underlying metric and physical table. Data outside the caller's scope is automatically filtered out or masked.
 
 ---
 
-## Implementation Sequence (For Future Milestone Execution)
+## Triggers for Future Architecture Review
 
-When implementation is unlocked in a future milestone, execution will proceed in the following order:
+PostgreSQL serves as the unified relational store for both operational CRUD and analytical queries. Introducing an out-of-band analytical data warehouse (e.g., ClickHouse, Snowflake, DuckDB) is deferred until the following triggers indicate a **Future Architecture Review**:
 
-1. Migration `011_analytics_m11_schema.sql` (Metric definitions, metric results snapshot table, saved reports table, indexes).
-2. Analytics Domain Model & Expression Evaluator (`src/modules/analytics/domain`).
-3. Core Metric Calculation Services (`src/modules/analytics/application`).
-4. Saved Reports Service & Query Engine (`src/modules/analytics/application/report.service.ts`).
-5. REST Controller & Router (`/api/v1/analytics`).
-6. Unit, API Integration & Multi-Tenant Security Tests (`tests/api/analytics-api.test.ts`).
+1. **Row Volume Threshold Trigger**: Transactional source tables (e.g. `work_logs`, `audit_logs`) exceed 10 million rows per organization tenant.
+2. **Performance Degradation Trigger**: Live analytical query execution causes measurable lock contention or API p99 latency degradation (>500ms) on transactional CRUD workloads.
+3. **High-Cardinality OLAP Trigger**: Business requirements demand complex multi-dimensional OLAP cube slice-and-dice over multi-year historical datasets that cannot be served within 2 seconds by indexed PostgreSQL queries.
 
 ---
 *Document frozen for Milestone 11 — Analytics Engine Architecture.*
