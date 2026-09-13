@@ -98,13 +98,14 @@ System catalog of registered domain events and version contracts:
 ```sql
 CREATE TABLE IF NOT EXISTS event_registry (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_name VARCHAR(150) NOT NULL UNIQUE,
+    event_name VARCHAR(150) NOT NULL,
     version VARCHAR(20) NOT NULL DEFAULT '1.0',
     source_module VARCHAR(50) NOT NULL,
     description TEXT NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_event_version UNIQUE (event_name, version)
 );
 ```
 

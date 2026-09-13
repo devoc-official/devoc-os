@@ -312,4 +312,69 @@ describe('Milestone 10 — Audit & Events Hardening Unit & Conformance Tests', (
     expect(res.rows[0].version).toBe('1.0');
     expect(res.rows[1].version).toBe('2.0');
   });
+
+  it('9. Immediate dispatch failure — transaction remains committed and outbox record remains recoverable by poller', async () => {
+    const db = getDbClient();
+    const entityId = uuidv4();
+
+    // 1. Transaction commits successfully with audit and outbox record staged
+    const { outboxRecord } = await withTransaction(async (tx) => {
+      await AuditService.recordLog({
+        organizationId: testOrgId,
+        action: 'TEST_DISPATCH_FAILURE',
+        entityType: 'test_entity',
+        entityId,
+        dbClient: tx,
+      });
+
+      const outboxRecord = await OutboxService.stageOutboxEvent({
+        organizationId: testOrgId,
+        eventName: 'dispatch.failure.test.event',
+        entityType: 'test_entity',
+        entityId,
+        payload: { test: true },
+        dbClient: tx,
+      });
+
+      return { outboxRecord };
+    });
+
+    // 2. Simulate eventBus throwing an error on immediate dispatch
+    const failingSubscriber = () => {
+      throw new Error('Immediate subscriber error during post-commit dispatch');
+    };
+    eventBus.on('dispatch.failure.test.event', failingSubscriber);
+
+    // Call immediate dispatch -> it catches subscriber error, logs warning, returns false
+    const dispatchResult = await OutboxService.dispatchImmediate(outboxRecord);
+    expect(dispatchResult).toBe(false);
+
+    // Remove failing subscriber
+    eventBus.off('dispatch.failure.test.event', failingSubscriber);
+
+    // 3. Verify business transaction and audit log remain committed in DB!
+    const auditRes = await db.query(`SELECT * FROM audit_logs WHERE entity_id = $1;`, [entityId]);
+    expect(auditRes.rows).toHaveLength(1);
+
+    // 4. Verify outbox record remains in Pending state with last_error recorded, ready for recovery!
+    const outboxAfter = await OutboxService.getEventById(testOrgId, outboxRecord.id);
+    expect(outboxAfter.status).toBe('Pending');
+    expect(outboxAfter.lastError).toContain('Immediate subscriber error');
+
+    // 5. Poller can recover and dispatch successfully
+    let recoveredEvent: DomainEventPayload | null = null;
+    const workingSubscriber = (evt: DomainEventPayload) => {
+      recoveredEvent = evt;
+    };
+    eventBus.on('dispatch.failure.test.event', workingSubscriber);
+
+    const polledCount = await OutboxService.processPendingOutboxEvents(10);
+    expect(polledCount).toBeGreaterThanOrEqual(1);
+
+    eventBus.off('dispatch.failure.test.event', workingSubscriber);
+
+    expect(recoveredEvent).not.toBeNull();
+    const finalOutbox = await OutboxService.getEventById(testOrgId, outboxRecord.id);
+    expect(finalOutbox.status).toBe('Dispatched');
+  });
 });
