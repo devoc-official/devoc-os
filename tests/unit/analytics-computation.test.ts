@@ -49,21 +49,6 @@ describe('Milestone 11 — Analytics QueryBuilder & Computation Logic Unit Tests
       field: 'duration_minutes',
     });
     expect(avgQuery.sql).toContain('COALESCE(AVG(s.duration_minutes), 0)::numeric AS metric_value');
-
-    // MIN & MAX
-    const minQuery = AnalyticsQueryBuilder.buildQuery(orgId, {
-      sourceEntity: 'LEARNING_ASSESSMENT',
-      aggregation: 'MIN',
-      field: 'max_score',
-    });
-    expect(minQuery.sql).toContain('COALESCE(MIN(s.max_score), 0)::numeric AS metric_value');
-
-    const maxQuery = AnalyticsQueryBuilder.buildQuery(orgId, {
-      sourceEntity: 'LEARNING_ASSESSMENT',
-      aggregation: 'MAX',
-      field: 'max_score',
-    });
-    expect(maxQuery.sql).toContain('COALESCE(MAX(s.max_score), 0)::numeric AS metric_value');
   });
 
   it('4. Generates WEIGHTED_AGGREGATION query correctly', () => {

@@ -13,8 +13,6 @@ export type MetricType =
   | 'COUNT'
   | 'SUM'
   | 'AVERAGE'
-  | 'MIN'
-  | 'MAX'
   | 'RATE'
   | 'PERCENTAGE'
   | 'WEIGHTED_AGGREGATION'
@@ -55,8 +53,6 @@ export const ALLOWED_AGGREGATIONS: AggregationType[] = [
   'COUNT',
   'SUM',
   'AVERAGE',
-  'MIN',
-  'MAX',
   'RATE',
   'PERCENTAGE',
   'WEIGHTED_AGGREGATION',

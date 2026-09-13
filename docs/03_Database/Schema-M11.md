@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS analytics_metric_definitions (
     ),
     metric_type VARCHAR(50) NOT NULL CHECK (
         metric_type IN (
-            'COUNT', 'SUM', 'AVERAGE', 'MIN', 'MAX', 'RATE',
+            'COUNT', 'SUM', 'AVERAGE', 'RATE',
             'PERCENTAGE', 'WEIGHTED_AGGREGATION', 'TREND'
         )
     ),
@@ -50,7 +50,7 @@ Stores append-only computed metric snapshots for historical trend comparisons an
 CREATE TABLE IF NOT EXISTS analytics_metric_results (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    metric_definition_id UUID NOT NULL REFERENCES analytics_metric_definitions(id) ON DELETE CASCADE,
+    metric_definition_id UUID NOT NULL REFERENCES analytics_metric_definitions(id) ON DELETE RESTRICT,
     period_type VARCHAR(30) NOT NULL CHECK (
         period_type IN ('day', 'week', 'month', 'quarter', 'year', 'custom')
     ),

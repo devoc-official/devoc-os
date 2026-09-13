@@ -11,8 +11,6 @@ const ALL_AGGREGATIONS: AggregationType[] = [
   'COUNT',
   'SUM',
   'AVERAGE',
-  'MIN',
-  'MAX',
   'RATE',
   'PERCENTAGE',
   'WEIGHTED_AGGREGATION',
@@ -309,7 +307,7 @@ export const ANALYTICS_SOURCE_REGISTRY: Record<string, LogicalSourceDefinition> 
       ASSIGNMENT: { targetEntity: 'ASSIGNMENT', onField: 'assignment_id' },
       WORK_CATEGORY: { targetEntity: 'WORK_CATEGORY', onField: 'category_id' },
     },
-    allowedAggregations: ['COUNT', 'SUM', 'AVERAGE', 'MIN', 'MAX', 'TREND'],
+    allowedAggregations: ['COUNT', 'SUM', 'AVERAGE', 'TREND'],
   },
   WORK_EVIDENCE: {
     logicalSource: 'WORK_EVIDENCE',
@@ -550,7 +548,7 @@ export const ANALYTICS_SOURCE_REGISTRY: Record<string, LogicalSourceDefinition> 
       LEARNING_ENROLLMENT: { targetEntity: 'LEARNING_ENROLLMENT', onField: 'enrollment_id' },
       PERSON: { targetEntity: 'PERSON', onField: 'reviewer_person_id' },
     },
-    allowedAggregations: ['COUNT', 'AVERAGE', 'MIN', 'MAX', 'TREND'],
+    allowedAggregations: ['COUNT', 'AVERAGE', 'TREND'],
   },
   LEARNING_REVIEW_CHANGE: {
     logicalSource: 'LEARNING_REVIEW_CHANGE',
@@ -588,7 +586,7 @@ export const ANALYTICS_SOURCE_REGISTRY: Record<string, LogicalSourceDefinition> 
       LEARNING_ASSESSMENT: { targetEntity: 'LEARNING_ASSESSMENT', onField: 'assessment_id' },
       PERSON: { targetEntity: 'PERSON', onField: 'person_id' },
     },
-    allowedAggregations: ['COUNT', 'AVERAGE', 'MIN', 'MAX', 'TREND'],
+    allowedAggregations: ['COUNT', 'AVERAGE', 'TREND'],
   },
   EVALUATION_TEMPLATE: {
     logicalSource: 'EVALUATION_TEMPLATE',
@@ -664,7 +662,7 @@ export const ANALYTICS_SOURCE_REGISTRY: Record<string, LogicalSourceDefinition> 
       EVALUATION: { targetEntity: 'EVALUATION', onField: 'evaluation_id' },
       EVALUATION_CRITERION: { targetEntity: 'EVALUATION_CRITERION', onField: 'criterion_id' },
     },
-    allowedAggregations: ['COUNT', 'SUM', 'AVERAGE', 'MIN', 'MAX', 'TREND'],
+    allowedAggregations: ['COUNT', 'SUM', 'AVERAGE', 'TREND'],
   },
   EVALUATION_FEEDBACK: {
     logicalSource: 'EVALUATION_FEEDBACK',
@@ -754,7 +752,7 @@ export const ANALYTICS_SOURCE_REGISTRY: Record<string, LogicalSourceDefinition> 
       DEPARTMENT: { targetEntity: 'DEPARTMENT', onField: 'department_id' },
       PROJECT: { targetEntity: 'PROJECT', onField: 'project_id' },
     },
-    allowedAggregations: ['COUNT', 'SUM', 'AVERAGE', 'MIN', 'MAX', 'TREND'],
+    allowedAggregations: ['COUNT', 'SUM', 'AVERAGE', 'TREND'],
   },
   FINANCIAL_OBLIGATION_ITEM: {
     logicalSource: 'FINANCIAL_OBLIGATION_ITEM',
@@ -771,7 +769,7 @@ export const ANALYTICS_SOURCE_REGISTRY: Record<string, LogicalSourceDefinition> 
     allowedRelationships: {
       FINANCIAL_OBLIGATION: { targetEntity: 'FINANCIAL_OBLIGATION', onField: 'obligation_id' },
     },
-    allowedAggregations: ['COUNT', 'SUM', 'AVERAGE', 'MIN', 'MAX', 'TREND'],
+    allowedAggregations: ['COUNT', 'SUM', 'AVERAGE', 'TREND'],
   },
   FINANCIAL_TRANSACTION: {
     logicalSource: 'FINANCIAL_TRANSACTION',
@@ -783,7 +781,7 @@ export const ANALYTICS_SOURCE_REGISTRY: Record<string, LogicalSourceDefinition> 
     allowedRelationships: {
       FINANCIAL_PARTY: { targetEntity: 'FINANCIAL_PARTY', onField: 'party_id' },
     },
-    allowedAggregations: ['COUNT', 'SUM', 'AVERAGE', 'MIN', 'MAX', 'TREND'],
+    allowedAggregations: ['COUNT', 'SUM', 'AVERAGE', 'TREND'],
   },
   FINANCIAL_ALLOCATION: {
     logicalSource: 'FINANCIAL_ALLOCATION',
@@ -825,7 +823,7 @@ export const ANALYTICS_SOURCE_REGISTRY: Record<string, LogicalSourceDefinition> 
       PROJECT: { targetEntity: 'PROJECT', onField: 'project_id' },
       FINANCE_CATEGORY: { targetEntity: 'FINANCE_CATEGORY', onField: 'category_id' },
     },
-    allowedAggregations: ['COUNT', 'SUM', 'AVERAGE', 'MIN', 'MAX', 'TREND'],
+    allowedAggregations: ['COUNT', 'SUM', 'AVERAGE', 'TREND'],
   },
   EVENT_OUTBOX: {
     logicalSource: 'EVENT_OUTBOX',

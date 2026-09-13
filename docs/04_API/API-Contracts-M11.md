@@ -94,7 +94,7 @@ All `calculationSpec` structures submitted via `POST /api/v1/analytics/metrics` 
 | `EVENT_REGISTRY` | `event_registry` | `id` | — (Global Registry) | `event_name`, `version`, `source_module`, `is_active`, `created_at` | — |
 
 * Allowed operators: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `between`, `is_null`, `is_not_null`.
-* Allowed aggregations: `COUNT`, `SUM`, `AVERAGE`, `MIN`, `MAX`, `RATE`, `PERCENTAGE`, `WEIGHTED_AGGREGATION`, `TREND`.
+* Allowed aggregations: `COUNT`, `SUM`, `AVERAGE`, `RATE`, `PERCENTAGE`, `WEIGHTED_AGGREGATION`, `TREND`.
 
 Requests containing unlisted logical entity identifiers, physical table names, column names, raw SQL fragments, or dynamic code snippets return HTTP `400 Bad Request`.
 

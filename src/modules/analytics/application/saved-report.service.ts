@@ -11,6 +11,7 @@ import {
 import { ForbiddenError, NotFoundError } from '../../../shared/errors/index.js';
 import { AuditService } from '../../../audit/audit.service.js';
 import { eventBus } from '../../../events/event-bus.js';
+import { validateContextualFilters } from '../api/analytics-auth.middleware.js';
 
 export interface ExecuteReportOverrides {
   overrideTimeWindow?: {
@@ -165,10 +166,19 @@ export class SavedReportService {
   ): Promise<ExecutedReportResult> {
     const report = await this.reportRepo.getById(organizationId, id);
 
-    // If report is private, check access
-    if (!report.isPublic && report.createdBy !== authScope?.personId && authScope?.role !== 'org_admin' && !authScope?.isPlatformAdmin) {
-      // If user is not admin and not creator
-      // Check caller access
+    // If report is private, check access (createdBy is users.id)
+    if (
+      !report.isPublic &&
+      report.createdBy !== authScope?.userId &&
+      authScope?.role !== 'org_admin' &&
+      !authScope?.isPlatformAdmin
+    ) {
+      throw new ForbiddenError('Access to private report is forbidden');
+    }
+
+    // Public saved reports cannot bypass contextual authorization
+    if (authScope) {
+      validateContextualFilters(report.filters, authScope);
     }
 
     const timeWindow = {

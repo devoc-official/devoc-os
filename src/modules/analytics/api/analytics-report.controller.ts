@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { SavedReportService } from '../application/saved-report.service.js';
 import { sendSuccess, sendError } from '../../../shared/http/envelope.js';
-import { extractAuthScope } from './analytics-auth.middleware.js';
+import { resolveContextualAuthScope } from './analytics-auth.middleware.js';
 
 export class AnalyticsReportController {
   private reportService: SavedReportService;
@@ -82,7 +82,7 @@ export class AnalyticsReportController {
     try {
       const orgId = req.tenantContext!.organizationId;
       const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-      const authScope = extractAuthScope(req);
+      const authScope = await resolveContextualAuthScope(req, orgId);
 
       const executedResult = await this.reportService.executeReport(
         orgId,

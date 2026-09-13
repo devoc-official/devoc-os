@@ -31,7 +31,7 @@ Represents a declarative, reusable metric specification:
 * `name`: Human-readable metric title (e.g., "Student Placement Rate").
 * `code`: Unique machine-readable metric identifier (e.g., `KPI_PLACEMENT_RATE`).
 * `domainModule`: Target operational module (`organization`, `people`, `assignments`, `projects`, `work`, `meetings`, `learning`, `evaluation`, `finance`).
-* `metricType`: Aggregation type (`COUNT`, `SUM`, `AVERAGE`, `MIN`, `MAX`, `RATE`, `PERCENTAGE`, `WEIGHTED_AGGREGATION`, `TREND`).
+* `metricType`: Aggregation type (`COUNT`, `SUM`, `AVERAGE`, `RATE`, `PERCENTAGE`, `WEIGHTED_AGGREGATION`, `TREND`).
 * `calculationSpec`: Declarative JSON structure defining logical source entities, target fields, filter rules, numerator/denominator references, or weights from the Analytics Source Registry.
 * `supportedDimensions`: Array of allowed dimension codes (e.g., `["organization_id", "business_unit_id", "learning_program_id", "time_period"]`).
 * `createdBy`: User ID initiating metric creation (UUID).

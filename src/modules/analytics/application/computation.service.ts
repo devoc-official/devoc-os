@@ -6,6 +6,7 @@ import { MetricResultRepository } from '../infrastructure/metric-result.reposito
 import { AnalyticsQueryBuilder, ContextualAuthScope } from './query-builder.js';
 import { PeriodType, MetricResultDto } from '../domain/metric-result.entity.js';
 import { MetricDefinition } from '../domain/metric-definition.entity.js';
+import { validateContextualFilters } from '../api/analytics-auth.middleware.js';
 
 export interface ComputeOptions {
   periodType?: PeriodType;
@@ -138,6 +139,21 @@ export class AnalyticsComputationService {
     const db = getDbClient();
     const spec = metric.calculationSpec as any;
 
+    if (authScope) {
+      if (options.dimensionFilters) {
+        validateContextualFilters(options.dimensionFilters, authScope);
+      }
+      if (spec.filter) {
+        validateContextualFilters(spec.filter, authScope);
+      }
+      if (spec.numerator?.filter) {
+        validateContextualFilters(spec.numerator.filter, authScope);
+      }
+      if (spec.denominator?.filter) {
+        validateContextualFilters(spec.denominator.filter, authScope);
+      }
+    }
+
     // PERCENTAGE or RATE with numerator and denominator
     if (metric.metricType === 'PERCENTAGE' || metric.metricType === 'RATE' || (spec.numerator && spec.denominator)) {
       const numSpec = spec.numerator;
@@ -262,7 +278,7 @@ export class AnalyticsComputationService {
       };
     }
 
-    // Single source aggregation: COUNT, SUM, AVERAGE, MIN, MAX, WEIGHTED_AGGREGATION
+    // Single source aggregation: COUNT, SUM, AVERAGE, WEIGHTED_AGGREGATION
     const mergedFilters = { ...(spec.filter || {}), ...(options.dimensionFilters || {}) };
 
     const query = AnalyticsQueryBuilder.buildQuery(

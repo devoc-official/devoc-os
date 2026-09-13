@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { MetricDefinitionService } from '../application/metric-definition.service.js';
 import { AnalyticsComputationService } from '../application/computation.service.js';
 import { sendSuccess, sendError } from '../../../shared/http/envelope.js';
-import { extractAuthScope } from './analytics-auth.middleware.js';
+import { resolveContextualAuthScope, validateContextualFilters } from './analytics-auth.middleware.js';
 
 export class AnalyticsMetricController {
   private metricService: MetricDefinitionService;
@@ -87,7 +87,8 @@ export class AnalyticsMetricController {
     try {
       const orgId = req.tenantContext!.organizationId;
       const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-      const authScope = extractAuthScope(req);
+      const authScope = await resolveContextualAuthScope(req, orgId);
+      validateContextualFilters(req.body?.dimensionFilters, authScope);
 
       const result = await this.computationService.computeMetric(
         orgId,

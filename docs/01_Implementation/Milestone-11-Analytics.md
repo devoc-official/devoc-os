@@ -165,7 +165,7 @@ The Analytics Source Registry defines the strict allowlist for metric specificat
     "AUDIT_LOG", "EVENT_OUTBOX", "EVENT_CONSUMER_RECORD", "EVENT_REGISTRY"
   ],
   "allowedOperators": ["eq", "neq", "gt", "gte", "lt", "lte", "in", "not_in", "between", "is_null", "is_not_null"],
-  "allowedAggregations": ["COUNT", "SUM", "AVERAGE", "MIN", "MAX", "RATE", "PERCENTAGE", "WEIGHTED_AGGREGATION", "TREND"],
+  "allowedAggregations": ["COUNT", "SUM", "AVERAGE", "RATE", "PERCENTAGE", "WEIGHTED_AGGREGATION", "TREND"],
   "allowedDimensions": [
     "organization_id", "branch_id", "business_unit_id", "department_id", "team_id",
     "person_id", "role_id", "project_id", "task_id", "learning_program_id",

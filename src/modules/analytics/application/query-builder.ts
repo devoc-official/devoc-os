@@ -9,11 +9,15 @@ import { MetricType } from '../domain/metric-definition.entity.js';
 
 export interface ContextualAuthScope {
   role: string;
+  userId?: string;
   isPlatformAdmin?: boolean;
+  personId?: string;
   businessUnitIds?: string[];
   teamIds?: string[];
   projectIds?: string[];
-  personId?: string;
+  allAuthorizedBusinessUnitIds?: string[];
+  allAuthorizedTeamIds?: string[];
+  allAuthorizedProjectIds?: string[];
 }
 
 export interface BuildQueryOptions {
@@ -122,7 +126,7 @@ export class AnalyticsQueryBuilder {
     }
 
     // Contextual Authorization Scoping
-    if (authScope && !authScope.isPlatformAdmin && authScope.role !== 'org_admin') {
+    if (authScope) {
       if (
         authScope.businessUnitIds &&
         authScope.businessUnitIds.length > 0 &&
@@ -150,16 +154,26 @@ export class AnalyticsQueryBuilder {
         params.push(authScope.projectIds);
       }
 
-      if (
-        authScope.personId &&
-        registeredSource.allowedDimensions.includes('person_id') &&
-        authScope.role === 'org_member' &&
-        !authScope.businessUnitIds?.length &&
-        !authScope.projectIds?.length
-      ) {
-        // Individual restricted scope
-        whereConditions.push(`${tableAlias}.person_id = $${paramIdx++}`);
-        params.push(authScope.personId);
+      if (!authScope.isPlatformAdmin && authScope.role !== 'org_admin') {
+        if (
+          authScope.personId &&
+          registeredSource.allowedDimensions.includes('person_id') &&
+          authScope.role === 'org_member' &&
+          !authScope.businessUnitIds?.length &&
+          !authScope.projectIds?.length
+        ) {
+          // Individual restricted scope
+          whereConditions.push(`${tableAlias}.person_id = $${paramIdx++}`);
+          params.push(authScope.personId);
+        } else if (
+          !authScope.personId &&
+          !authScope.businessUnitIds?.length &&
+          !authScope.projectIds?.length &&
+          !authScope.teamIds?.length
+        ) {
+          // Member without person identity and without any organizational scope
+          whereConditions.push('1 = 0');
+        }
       }
     }
 
@@ -281,12 +295,6 @@ export class AnalyticsQueryBuilder {
         break;
       case 'AVERAGE':
         selectExpr = `COALESCE(AVG(${targetCol}), 0)::numeric AS metric_value, COUNT(*)::int AS total_count`;
-        break;
-      case 'MIN':
-        selectExpr = `COALESCE(MIN(${targetCol}), 0)::numeric AS metric_value, COUNT(*)::int AS total_count`;
-        break;
-      case 'MAX':
-        selectExpr = `COALESCE(MAX(${targetCol}), 0)::numeric AS metric_value, COUNT(*)::int AS total_count`;
         break;
       case 'WEIGHTED_AGGREGATION':
         if (!options.weightField || !targetCol) {
