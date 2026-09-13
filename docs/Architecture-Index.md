@@ -13,6 +13,7 @@ This index is the primary navigation point for engineering documentation.
 - [Milestone 7 — Learning Engine](01_Implementation/Milestone-07-Learning.md)
 - [Milestone 8 — Evaluation Engine](01_Implementation/Milestone-08-Evaluation.md)
 - [Milestone 9 — Finance Engine](01_Implementation/Milestone-09-Finance.md)
+- [Milestone 10 — Audit & Events Hardening](01_Implementation/Milestone-10-Audit-Events.md)
 
 ## Engineering Contracts & Security
 
@@ -25,6 +26,7 @@ This index is the primary navigation point for engineering documentation.
 - [Database Architecture & Schema M7](03_Database/Schema-M7.md)
 - [Database Architecture & Schema M8](03_Database/Schema-M8.md)
 - [Database Architecture & Schema M9](03_Database/Schema-M9.md)
+- [Database Architecture & Schema M10](03_Database/Schema-M10.md)
 - [REST API Architecture & Contracts M1](04_API/API-Contracts-M1.md)
 - [REST API Architecture & Contracts M2](04_API/API-Contracts-M2.md)
 - [REST API Architecture & Contracts M3](04_API/API-Contracts-M3.md)
@@ -34,6 +36,7 @@ This index is the primary navigation point for engineering documentation.
 - [REST API Architecture & Contracts M7](04_API/API-Contracts-M7.md)
 - [REST API Architecture & Contracts M8](04_API/API-Contracts-M8.md)
 - [REST API Architecture & Contracts M9](04_API/API-Contracts-M9.md)
+- [REST API Architecture & Contracts M10](04_API/API-Contracts-M10.md)
 - [Authentication, Tenant Resolution & Security](05_Security/Auth-And-Tenancy.md)
 
 ## AI Development & Workflow
@@ -52,6 +55,7 @@ This index is the primary navigation point for engineering documentation.
 - [Learning Domain — M7](02_Domain/Learning-M7.md)
 - [Evaluation Domain — M8](02_Domain/Evaluation-M8.md)
 - [Finance Domain — M9](02_Domain/Finance-M9.md)
+- [Audit & Events Domain — M10](02_Domain/Audit-Events-M10.md)
 - Analytics Engine — planned documentation
 
 ## Architecture Decisions (ADRs)
@@ -69,6 +73,7 @@ This index is the primary navigation point for engineering documentation.
 - [ADR-011 — Learning Engine](10_ADR/ADR-011-Learning-Engine.md)
 - [ADR-012 — Evaluation Engine](10_ADR/ADR-012-Evaluation-Engine.md)
 - [ADR-013 — Finance Engine](10_ADR/ADR-013-Finance-Engine.md)
+- [ADR-014 — Audit & Domain Events Hardening](10_ADR/ADR-014-Audit-Events-Hardening.md)
 
 ## Documentation Ownership
 
