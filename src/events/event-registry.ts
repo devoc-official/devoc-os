@@ -74,8 +74,8 @@ export class EventRegistryService {
       await db.query(
         `INSERT INTO event_registry (event_name, version, source_module, description)
          VALUES ($1, $2, $3, $4)
-         ON CONFLICT (event_name) DO UPDATE
-         SET version = EXCLUDED.version, source_module = EXCLUDED.source_module, description = EXCLUDED.description, updated_at = NOW();`,
+         ON CONFLICT (event_name, version) DO UPDATE
+         SET source_module = EXCLUDED.source_module, description = EXCLUDED.description, updated_at = NOW();`,
         [entry.eventName, entry.version, entry.sourceModule, entry.description]
       );
     }
