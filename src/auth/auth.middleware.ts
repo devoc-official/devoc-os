@@ -8,6 +8,7 @@ declare global {
     interface Request {
       user?: UserIdentity;
       requestId?: string;
+      correlationId?: string;
     }
   }
 }

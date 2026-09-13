@@ -656,12 +656,17 @@ export const seedDevelopmentData = async (): Promise<void> => {
     adminUser.id
   );
 
+  // --- Seed M10 Event Registry Catalog ---
+  const { EventRegistryService } = await import('../events/event-registry.js');
+  await EventRegistryService.seedEventRegistry();
+
   logger.info(`Created Sample Work Record: ${sampleWork.title} (${sampleWork.id})`);
   logger.info(`Created Sample Meeting: ${sampleMeeting.title} (${sampleMeeting.id})`);
   logger.info(`Created Sample Learning Program: ${fsseProgram.name} (${fsseProgram.id})`);
   logger.info('Created M8 Evaluation Templates (Founder, Employee, Internship, Mentor, Developer).');
   logger.info('Created M9 Finance Categories, Parties, Obligations, Transactions, Allocations, & Budgets.');
-  logger.info('Created Employments, Reporting hierarchy, Sample Assignment, M5 Work, M6 Meetings, M7 Learning, M8 Evaluation & M9 Finance Data.');
+  logger.info('Created M10 Event Registry Catalog.');
+  logger.info('Created Employments, Reporting hierarchy, Sample Assignment, M5 Work, M6 Meetings, M7 Learning, M8 Evaluation, M9 Finance & M10 Audit/Events Data.');
   logger.info('✅ Seeding complete!');
 };
 
