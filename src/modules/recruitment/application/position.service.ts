@@ -203,10 +203,22 @@ export class PositionService {
         dbClient: tx,
       });
 
-      return saved;
+      const outboxRecord = await OutboxService.stageOutboxEvent({
+        organizationId,
+        eventName: 'recruitment.position.updated',
+        entityType: 'Position',
+        entityId: saved.id,
+        payload: { id: saved.id, title: saved.title, status: saved.status },
+        actorId: input.actorId,
+        requestId: input.requestId,
+        dbClient: tx,
+      });
+
+      return { saved, outboxRecord };
     });
 
-    return result;
+    await OutboxService.dispatchImmediate(result.outboxRecord);
+    return result.saved;
   }
 
   public static async transitionStatus(
@@ -248,26 +260,21 @@ export class PositionService {
         dbClient: tx,
       });
 
-      let outboxRecord = null;
-      if (eventName && eventName !== 'recruitment.position.archived') {
-        outboxRecord = await OutboxService.stageOutboxEvent({
-          organizationId,
-          eventName,
-          entityType: 'Position',
-          entityId: saved.id,
-          payload: { id: saved.id, status: saved.status },
-          actorId,
-          requestId,
-          dbClient: tx,
-        });
-      }
+      const outboxRecord = await OutboxService.stageOutboxEvent({
+        organizationId,
+        eventName,
+        entityType: 'Position',
+        entityId: saved.id,
+        payload: { id: saved.id, status: saved.status },
+        actorId,
+        requestId,
+        dbClient: tx,
+      });
 
       return { saved, outboxRecord };
     });
 
-    if (result.outboxRecord) {
-      await OutboxService.dispatchImmediate(result.outboxRecord);
-    }
+    await OutboxService.dispatchImmediate(result.outboxRecord);
     return result.saved;
   }
 }

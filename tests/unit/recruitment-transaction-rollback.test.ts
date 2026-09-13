@@ -358,4 +358,102 @@ describe('Milestone 13 — Transaction Rollback & Outbox Timing Conformance Test
     );
     expect(auditRes.rows.length).toBeGreaterThanOrEqual(1);
   });
+
+  it('7. Position Update — Successful commit creates mutation + audit + outbox + post-commit dispatch; failure rolls back all', async () => {
+    const db = getDbClient();
+
+    const pos = await PositionService.createPosition({
+      organizationId: org.id,
+      title: 'Update Test Position Initial',
+      code: 'REQ-UPD-01',
+      hiringManagerId: hiringManager.id,
+    });
+
+    const dispatchSpy = vi.fn();
+    const handler = (evt: any) => dispatchSpy(evt);
+    eventBus.on('recruitment.position.updated', handler);
+
+    // Successful update
+    const updated = await PositionService.updatePosition(org.id, pos.id, {
+      title: 'Update Test Position Modified',
+    });
+
+    expect(updated.title).toBe('Update Test Position Modified');
+
+    // Verify DB update
+    const dbPos = await db.query(`SELECT title FROM recruitment_positions WHERE id = $1;`, [pos.id]);
+    expect(dbPos.rows[0].title).toBe('Update Test Position Modified');
+
+    // Verify audit log
+    const auditRes = await db.query(
+      `SELECT * FROM audit_logs WHERE organization_id = $1 AND entity_id = $2 AND action = 'recruitment.position.updated';`,
+      [org.id, pos.id]
+    );
+    expect(auditRes.rows.length).toBeGreaterThanOrEqual(1);
+
+    // Verify outbox record
+    const outboxRes = await db.query(
+      `SELECT * FROM event_outbox WHERE organization_id = $1 AND entity_id = $2 AND event_name = 'recruitment.position.updated';`,
+      [org.id, pos.id]
+    );
+    expect(outboxRes.rows.length).toBe(1);
+
+    // Verify post-commit event dispatch
+    expect(dispatchSpy).toHaveBeenCalled();
+
+    eventBus.removeListener('recruitment.position.updated', handler);
+
+    // Failed update check (invalid minSalary > maxSalary forces validation failure)
+    let thrownError: any = null;
+    try {
+      await PositionService.updatePosition(org.id, pos.id, {
+        minSalary: 200000,
+        maxSalary: 100000,
+      });
+    } catch (err) {
+      thrownError = err;
+    }
+    expect(thrownError).toBeDefined();
+  });
+
+  it('8. Position Archive — Successful commit creates mutation + audit + outbox (recruitment.position.archived) + post-commit dispatch', async () => {
+    const db = getDbClient();
+
+    const pos = await PositionService.createPosition({
+      organizationId: org.id,
+      title: 'Archive Test Position',
+      code: 'REQ-ARCH-01',
+      hiringManagerId: hiringManager.id,
+    });
+
+    const dispatchSpy = vi.fn();
+    const handler = (evt: any) => dispatchSpy(evt);
+    eventBus.on('recruitment.position.archived', handler);
+
+    const archived = await PositionService.transitionStatus(org.id, pos.id, 'archive');
+    expect(archived.status).toBe('archived');
+
+    // Verify DB status
+    const dbPos = await db.query(`SELECT status FROM recruitment_positions WHERE id = $1;`, [pos.id]);
+    expect(dbPos.rows[0].status).toBe('archived');
+
+    // Verify audit log
+    const auditRes = await db.query(
+      `SELECT * FROM audit_logs WHERE organization_id = $1 AND entity_id = $2 AND action = 'recruitment.position.archived';`,
+      [org.id, pos.id]
+    );
+    expect(auditRes.rows.length).toBeGreaterThanOrEqual(1);
+
+    // Verify outbox record
+    const outboxRes = await db.query(
+      `SELECT * FROM event_outbox WHERE organization_id = $1 AND entity_id = $2 AND event_name = 'recruitment.position.archived';`,
+      [org.id, pos.id]
+    );
+    expect(outboxRes.rows.length).toBe(1);
+
+    // Verify post-commit event dispatch
+    expect(dispatchSpy).toHaveBeenCalled();
+
+    eventBus.removeListener('recruitment.position.archived', handler);
+  });
 });

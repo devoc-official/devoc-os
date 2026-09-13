@@ -81,9 +81,11 @@ export const CANONICAL_EVENT_CATALOG: Array<{
 
   // M13 Recruitment
   { eventName: 'recruitment.position.created', version: '1.0', sourceModule: 'recruitment', description: 'Hiring position requisition created' },
+  { eventName: 'recruitment.position.updated', version: '1.0', sourceModule: 'recruitment', description: 'Position details updated' },
   { eventName: 'recruitment.position.opened', version: '1.0', sourceModule: 'recruitment', description: 'Position opened for recruitment' },
   { eventName: 'recruitment.position.paused', version: '1.0', sourceModule: 'recruitment', description: 'Position hiring paused' },
   { eventName: 'recruitment.position.closed', version: '1.0', sourceModule: 'recruitment', description: 'Position closed (hiring-terminal)' },
+  { eventName: 'recruitment.position.archived', version: '1.0', sourceModule: 'recruitment', description: 'Position archived (lifecycle-terminal)' },
   { eventName: 'recruitment.candidate.created', version: '1.0', sourceModule: 'recruitment', description: 'Candidate profile created' },
   { eventName: 'recruitment.candidate.updated', version: '1.0', sourceModule: 'recruitment', description: 'Candidate profile updated' },
   { eventName: 'recruitment.application.created', version: '1.0', sourceModule: 'recruitment', description: 'Candidate applied for position' },
