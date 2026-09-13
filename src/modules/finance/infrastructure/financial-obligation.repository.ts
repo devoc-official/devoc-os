@@ -225,6 +225,47 @@ export class FinancialObligationRepository {
     return this.getObligationById(organizationId, obligationId);
   }
 
+  public async updateDraftObligation(
+    organizationId: string,
+    obligationId: string,
+    input: Partial<CreateObligationInput>
+  ): Promise<FinancialObligation> {
+    const db = getDbClient();
+    const existing = await this.getObligationById(organizationId, obligationId);
+
+    const title = input.title ?? existing.title;
+    const description = input.description !== undefined ? input.description : existing.description;
+    const dueAt = input.dueAt !== undefined ? input.dueAt : existing.dueAt;
+    const branchId = input.branchId !== undefined ? input.branchId : existing.branchId;
+    const businessUnitId = input.businessUnitId !== undefined ? input.businessUnitId : existing.businessUnitId;
+    const departmentId = input.departmentId !== undefined ? input.departmentId : existing.departmentId;
+    const projectId = input.projectId !== undefined ? input.projectId : existing.projectId;
+    const targetType = input.targetType !== undefined ? input.targetType : existing.targetType;
+    const targetId = input.targetId !== undefined ? input.targetId : existing.targetId;
+
+    await db.query(
+      `UPDATE financial_obligations
+       SET title = $1, description = $2, due_at = $3, branch_id = $4, business_unit_id = $5,
+           department_id = $6, project_id = $7, target_type = $8, target_id = $9, updated_at = NOW()
+       WHERE id = $10 AND organization_id = $11;`,
+      [
+        title,
+        description || null,
+        dueAt || null,
+        branchId || null,
+        businessUnitId || null,
+        departmentId || null,
+        projectId || null,
+        targetType || null,
+        targetId || null,
+        obligationId,
+        organizationId,
+      ]
+    );
+
+    return this.getObligationById(organizationId, obligationId);
+  }
+
   public async addAdjustment(
     organizationId: string,
     obligationId: string,

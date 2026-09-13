@@ -42,6 +42,8 @@ tenantProtected.put('/organizations/:organizationId/finance/parties/:id', partyC
 tenantProtected.get('/finance/obligations', obliCtrl.listObligations);
 tenantProtected.post('/finance/obligations', obliCtrl.createObligation);
 tenantProtected.get('/finance/obligations/:id', obliCtrl.getObligation);
+tenantProtected.patch('/finance/obligations/:id', obliCtrl.updateObligation);
+tenantProtected.put('/finance/obligations/:id', obliCtrl.updateObligation);
 tenantProtected.post('/finance/obligations/:id/issue', obliCtrl.issueObligation);
 tenantProtected.post('/finance/obligations/:id/cancel', obliCtrl.cancelObligation);
 tenantProtected.post('/finance/obligations/:id/adjustments', obliCtrl.addAdjustment);
@@ -49,6 +51,8 @@ tenantProtected.post('/finance/obligations/:id/adjustments', obliCtrl.addAdjustm
 tenantProtected.get('/organizations/:organizationId/finance/obligations', obliCtrl.listObligations);
 tenantProtected.post('/organizations/:organizationId/finance/obligations', obliCtrl.createObligation);
 tenantProtected.get('/organizations/:organizationId/finance/obligations/:id', obliCtrl.getObligation);
+tenantProtected.patch('/organizations/:organizationId/finance/obligations/:id', obliCtrl.updateObligation);
+tenantProtected.put('/organizations/:organizationId/finance/obligations/:id', obliCtrl.updateObligation);
 tenantProtected.post('/organizations/:organizationId/finance/obligations/:id/issue', obliCtrl.issueObligation);
 tenantProtected.post('/organizations/:organizationId/finance/obligations/:id/cancel', obliCtrl.cancelObligation);
 tenantProtected.post('/organizations/:organizationId/finance/obligations/:id/adjustments', obliCtrl.addAdjustment);
@@ -66,12 +70,14 @@ tenantProtected.get('/organizations/:organizationId/finance/transactions/:id', t
 tenantProtected.post('/organizations/:organizationId/finance/transactions/:id/post', txCtrl.postTransaction);
 tenantProtected.post('/organizations/:organizationId/finance/transactions/:id/reverse', txCtrl.reverseTransaction);
 
-// --- ALLOCATIONS ---
+// --- ALLOCATIONS & ADJUSTMENTS ---
 tenantProtected.get('/finance/allocations', txCtrl.listAllocations);
 tenantProtected.post('/finance/allocations', txCtrl.allocateTransaction);
+tenantProtected.post('/finance/adjustments', obliCtrl.addAdjustment);
 
 tenantProtected.get('/organizations/:organizationId/finance/allocations', txCtrl.listAllocations);
 tenantProtected.post('/organizations/:organizationId/finance/allocations', txCtrl.allocateTransaction);
+tenantProtected.post('/organizations/:organizationId/finance/adjustments', obliCtrl.addAdjustment);
 
 // --- BUDGETS ---
 tenantProtected.get('/finance/budgets', budgetCtrl.listBudgets);

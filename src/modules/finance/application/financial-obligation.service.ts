@@ -55,6 +55,43 @@ export class FinancialObligationService {
     return this.repository.getObligationById(organizationId, obligationId);
   }
 
+  public async updateDraftObligation(
+    organizationId: string,
+    obligationId: string,
+    input: Partial<CreateObligationInput>,
+    actorUserId?: string
+  ): Promise<FinancialObligation> {
+    const existing = await this.repository.getObligationById(organizationId, obligationId);
+    if (existing.state !== 'Draft') {
+      throw new ValidationError(`Cannot update obligation core fields unless state is 'Draft'. Obligation is in state '${existing.state}'.`);
+    }
+
+    const updated = await this.repository.updateDraftObligation(organizationId, obligationId, input);
+
+    await AuditService.recordLog({
+      organizationId,
+      actorId: actorUserId,
+      action: 'FINANCIAL_OBLIGATION_UPDATED',
+      entityType: 'financial_obligation',
+      entityId: obligationId,
+      payload: { title: updated.title, state: updated.state },
+    });
+
+    eventBus.publish({
+      eventName: 'financial_obligation.updated',
+      organizationId,
+      actorId: actorUserId,
+      entityType: 'financial_obligation',
+      entityId: obligationId,
+      payload: {
+        title: updated.title,
+        state: updated.state,
+      },
+    });
+
+    return updated;
+  }
+
   public async listObligations(
     organizationId: string,
     filters?: {

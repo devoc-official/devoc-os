@@ -127,6 +127,52 @@ export class FinancialObligationController {
     }
   };
 
+  public updateObligation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const organizationId = getOrgId(req);
+      const id = getParamId(req, 'id');
+      const {
+        title,
+        description,
+        due_at,
+        dueAt,
+        branch_id,
+        branchId,
+        business_unit_id,
+        businessUnitId,
+        department_id,
+        departmentId,
+        project_id,
+        projectId,
+        target_type,
+        targetType,
+        target_id,
+        targetId,
+      } = req.body;
+
+      const obligation = await this.service.updateDraftObligation(
+        organizationId,
+        id,
+        {
+          title,
+          description,
+          dueAt: dueAt || due_at,
+          branchId: branchId || branch_id,
+          businessUnitId: businessUnitId || business_unit_id,
+          departmentId: departmentId || department_id,
+          projectId: projectId || project_id,
+          targetType: targetType || target_type,
+          targetId: targetId || target_id,
+        },
+        req.user?.id
+      );
+
+      sendSuccess(res, obligation);
+    } catch (err) {
+      next(err);
+    }
+  };
+
   public issueObligation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const organizationId = getOrgId(req);
@@ -152,8 +198,13 @@ export class FinancialObligationController {
   public addAdjustment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const organizationId = getOrgId(req);
-      const id = getParamId(req, 'id');
-      const { adjustment_type, adjustmentType, amount, reason } = req.body;
+      const paramId = req.params.id ? getParamId(req, 'id') : undefined;
+      const { obligation_id, obligationId, adjustment_type, adjustmentType, amount, reason } = req.body;
+
+      const targetObligationId = paramId || obligationId || obligation_id;
+      if (!targetObligationId) {
+        throw new ValidationError('obligationId is required');
+      }
 
       const aType = (adjustmentType || adjustment_type) as AdjustmentType;
       if (!aType || amount === undefined || !reason) {
@@ -162,7 +213,7 @@ export class FinancialObligationController {
 
       const adjustment = await this.service.addAdjustment(
         organizationId,
-        id,
+        targetObligationId,
         aType,
         Number(amount),
         reason,

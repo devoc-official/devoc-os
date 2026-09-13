@@ -124,6 +124,19 @@ describe('Milestone 9 — Finance Engine API Integration Tests', () => {
     obligationId = res.body.data.id;
   });
 
+  it('4b. PATCH /api/v1/finance/obligations/:id — update draft obligation details', async () => {
+    const res = await request(app)
+      .patch(`/api/v1/finance/obligations/${obligationId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .set('X-Organization-Id', org.id)
+      .send({
+        description: 'Updated Milestone 1 Core Development Deliverable with SLA',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.description).toBe('Updated Milestone 1 Core Development Deliverable with SLA');
+  });
+
   it('5. POST /api/v1/finance/obligations/:id/issue — transition to Issued', async () => {
     const res = await request(app)
       .post(`/api/v1/finance/obligations/${obligationId}/issue`)
@@ -134,12 +147,25 @@ describe('Milestone 9 — Finance Engine API Integration Tests', () => {
     expect(res.body.data.state).toBe('Issued');
   });
 
-  it('6. POST /api/v1/finance/obligations/:id/adjustments — add late fee adjustment', async () => {
+  it('5b. PATCH /api/v1/finance/obligations/:id — reject updating issued obligation core fields', async () => {
     const res = await request(app)
-      .post(`/api/v1/finance/obligations/${obligationId}/adjustments`)
+      .patch(`/api/v1/finance/obligations/${obligationId}`)
       .set('Authorization', `Bearer ${token}`)
       .set('X-Organization-Id', org.id)
       .send({
+        title: 'Unauthorized Title Modification',
+      });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('6. POST /api/v1/finance/adjustments — add late fee adjustment via root adjustments endpoint', async () => {
+    const res = await request(app)
+      .post('/api/v1/finance/adjustments')
+      .set('Authorization', `Bearer ${token}`)
+      .set('X-Organization-Id', org.id)
+      .send({
+        obligationId,
         adjustmentType: 'late_fee',
         amount: 5000.0,
         reason: 'Overdue invoice processing penalty',
