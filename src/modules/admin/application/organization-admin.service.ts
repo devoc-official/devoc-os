@@ -6,8 +6,7 @@ import { OrganizationSettingsProps } from '../domain/organization-settings.entit
 import { PeopleService } from '../../people/application/people.service.js';
 import { OrganizationService } from '../../organization/application/organization.service.js';
 import { AuditService } from '../../../audit/audit.service.js';
-import { OutboxService } from '../../../events/outbox.service.js';
-import { eventBus } from '../../../events/event-bus.js';
+import { OutboxService, OutboxEventRecord } from '../../../events/outbox.service.js';
 import {
   NotFoundError,
   ConflictError,
@@ -140,8 +139,7 @@ export class OrganizationAdminService {
       throw new ConflictError(`User '${userId}' is already linked to person '${collisionRes.rows[0].id}' in this organization`);
     }
 
-    // 4. Atomic link mutation
-    return await withTransaction(async (txClient) => {
+    const { outboxRecord } = await withTransaction(async (txClient) => {
       await txClient.query(
         `UPDATE people
          SET user_id = $1, updated_at = NOW()
@@ -163,7 +161,7 @@ export class OrganizationAdminService {
         dbClient: txClient,
       });
 
-      await OutboxService.stageOutboxEvent({
+      const outboxRecord = await OutboxService.stageOutboxEvent({
         organizationId,
         eventName: 'person.user_linked',
         entityType: 'person',
@@ -175,19 +173,13 @@ export class OrganizationAdminService {
         dbClient: txClient,
       });
 
-      eventBus.publish({
-        eventName: 'person.user_linked',
-        organizationId,
-        actorId,
-        entityType: 'person',
-        entityId: personId,
-        payload: { organizationId, personId, userId },
-        requestId,
-        correlationId,
-      });
-
-      return { personId, userId };
+      return { personId, userId, outboxRecord };
     });
+
+    // Post-commit dispatch (never inside transaction)
+    await OutboxService.dispatchImmediate(outboxRecord);
+
+    return { personId, userId };
   }
 
   public static async unlinkUserFromPerson(
@@ -212,7 +204,7 @@ export class OrganizationAdminService {
       throw new ValidationError(`Person '${personId}' is not linked to any user account`);
     }
 
-    return await withTransaction(async (txClient) => {
+    const { outboxRecord } = await withTransaction(async (txClient) => {
       await txClient.query(
         `UPDATE people
          SET user_id = NULL, updated_at = NOW()
@@ -235,7 +227,7 @@ export class OrganizationAdminService {
         dbClient: txClient,
       });
 
-      await OutboxService.stageOutboxEvent({
+      const outboxRecord = await OutboxService.stageOutboxEvent({
         organizationId,
         eventName: 'person.user_unlinked',
         entityType: 'person',
@@ -247,19 +239,13 @@ export class OrganizationAdminService {
         dbClient: txClient,
       });
 
-      eventBus.publish({
-        eventName: 'person.user_unlinked',
-        organizationId,
-        actorId,
-        entityType: 'person',
-        entityId: personId,
-        payload: { organizationId, personId, previousUserId },
-        requestId,
-        correlationId,
-      });
-
-      return { personId, previousUserId };
+      return { personId, previousUserId, outboxRecord };
     });
+
+    // Post-commit dispatch (never inside transaction)
+    await OutboxService.dispatchImmediate(outboxRecord);
+
+    return { personId, previousUserId };
   }
 
   // --- CONTEXTUAL ROLES ---
@@ -324,7 +310,7 @@ export class OrganizationAdminService {
       }
     }
 
-    return await withTransaction(async (txClient) => {
+    const { personRole, outboxRecord } = await withTransaction(async (txClient) => {
       const personRole = await PeopleService.assignRoleToPerson(
         organizationId,
         personId,
@@ -357,7 +343,7 @@ export class OrganizationAdminService {
         dbClient: txClient,
       });
 
-      await OutboxService.stageOutboxEvent({
+      const outboxRecord = await OutboxService.stageOutboxEvent({
         organizationId,
         eventName: 'role.context_assigned',
         entityType: 'person_role',
@@ -369,19 +355,13 @@ export class OrganizationAdminService {
         dbClient: txClient,
       });
 
-      eventBus.publish({
-        eventName: 'role.context_assigned',
-        organizationId,
-        actorId,
-        entityType: 'person_role',
-        entityId: personRole.id,
-        payload: { organizationId, personId, roleId: input.roleId },
-        requestId,
-        correlationId,
-      });
-
-      return personRole;
+      return { personRole, outboxRecord };
     });
+
+    // Post-commit dispatch (never inside transaction)
+    await OutboxService.dispatchImmediate(outboxRecord);
+
+    return personRole;
   }
 
   public static async endContextualRole(
@@ -515,7 +495,7 @@ export class OrganizationAdminService {
       return memberRes.rows[0];
     }
 
-    return await withTransaction(async (txClient) => {
+    const { member, outboxRecord } = await withTransaction(async (txClient) => {
       const res = await txClient.query<any>(
         `UPDATE organization_memberships
          SET status = $1, updated_at = NOW()
@@ -539,8 +519,9 @@ export class OrganizationAdminService {
         dbClient: txClient,
       });
 
+      let outboxRecord: OutboxEventRecord | undefined;
       if (newStatus === 'suspended') {
-        await OutboxService.stageOutboxEvent({
+        outboxRecord = await OutboxService.stageOutboxEvent({
           organizationId,
           eventName: 'membership.suspended',
           entityType: 'organization_membership',
@@ -551,20 +532,16 @@ export class OrganizationAdminService {
           correlationId,
           dbClient: txClient,
         });
-
-        eventBus.publish({
-          eventName: 'membership.suspended',
-          organizationId,
-          actorId,
-          entityType: 'organization_membership',
-          entityId: res.rows[0].id,
-          payload: { organizationId, userId, status: newStatus },
-          requestId,
-          correlationId,
-        });
       }
 
-      return res.rows[0];
+      return { member: res.rows[0], outboxRecord };
     });
+
+    // Post-commit dispatch (never inside transaction)
+    if (outboxRecord) {
+      await OutboxService.dispatchImmediate(outboxRecord);
+    }
+
+    return member;
   }
 }

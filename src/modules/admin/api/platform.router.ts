@@ -13,6 +13,15 @@ platformRouter.post('/organizations', PlatformAdminController.provisionOrganizat
 platformRouter.get('/organizations', PlatformAdminController.listOrganizations);
 platformRouter.get('/organizations/:id', PlatformAdminController.getOrganization);
 platformRouter.patch('/organizations/:id/status', PlatformAdminController.updateOrganizationStatus);
+// Compatibility aliases (canonical route is PATCH /organizations/:id/status)
+platformRouter.post('/organizations/:id/suspend', (req, res) => {
+  req.body = { ...req.body, status: 'suspended' };
+  return PlatformAdminController.updateOrganizationStatus(req, res);
+});
+platformRouter.post('/organizations/:id/reactivate', (req, res) => {
+  req.body = { ...req.body, status: 'active' };
+  return PlatformAdminController.updateOrganizationStatus(req, res);
+});
 
 // Global Platform Settings
 platformRouter.get('/settings', PlatformAdminController.listSettings);

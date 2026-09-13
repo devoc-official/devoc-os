@@ -136,6 +136,11 @@ Transitions the lifecycle status of an organization.
   - `404 NOT_FOUND`: Organization ID does not exist.
   - `422 INVALID_STATE_TRANSITION`: Invalid transition (e.g., from `archived` back to `active` without explicit unarchival procedure).
 
+- **Compatibility Aliases**:
+  - `POST /api/v1/platform/organizations/:id/suspend`: Compatibility alias forwarding directly to `PATCH .../status` with `status: "suspended"`.
+  - `POST /api/v1/platform/organizations/:id/reactivate`: Compatibility alias forwarding directly to `PATCH .../status` with `status: "active"`.
+  - The canonical contract remains `PATCH /api/v1/platform/organizations/:id/status`.
+
 ---
 
 #### `PUT /api/v1/platform/settings/:key`

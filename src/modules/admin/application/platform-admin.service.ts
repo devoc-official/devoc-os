@@ -10,7 +10,6 @@ import { FeatureConfigurationRepository } from '../infrastructure/feature-config
 import { FeatureConfigurationEntity, FeatureConfigurationProps } from '../domain/feature-configuration.entity.js';
 import { AuditService } from '../../../audit/audit.service.js';
 import { OutboxService } from '../../../events/outbox.service.js';
-import { eventBus } from '../../../events/event-bus.js';
 import {
   ConflictError,
   NotFoundError,
@@ -59,7 +58,7 @@ export class PlatformAdminService {
       throw new ConflictError(`Organization slug '${input.slug}' is already taken`);
     }
 
-    return await withTransaction(async (txClient) => {
+    const { organization, settings, adminUser, outboxRecord } = await withTransaction(async (txClient) => {
       // 1. Resolve or create initial admin user
       let adminUser = await AuthService.getUserByEmail(input.adminEmail);
       if (!adminUser) {
@@ -128,7 +127,7 @@ export class PlatformAdminService {
       });
 
       // 6. Stage Outbox Event
-      await OutboxService.stageOutboxEvent({
+      const outboxRecord = await OutboxService.stageOutboxEvent({
         organizationId: organization.id,
         eventName: 'organization.provisioned',
         entityType: 'organization',
@@ -145,28 +144,22 @@ export class PlatformAdminService {
         dbClient: txClient,
       });
 
-      // Emit fast in-process event
-      eventBus.publish({
-        eventName: 'organization.provisioned',
-        organizationId: organization.id,
-        actorId: input.actorId || adminUser.id,
-        entityType: 'organization',
-        entityId: organization.id,
-        payload: {
-          organizationId: organization.id,
-          slug: organization.slug,
-          adminUserId: adminUser.id,
-        },
-        requestId: input.requestId,
-        correlationId: input.correlationId,
-      });
-
       return {
         organization,
         settings,
         adminUser: { id: adminUser.id, email: adminUser.email, fullName: adminUser.fullName },
+        outboxRecord,
       };
     });
+
+    // Post-commit dispatch (never inside transaction)
+    await OutboxService.dispatchImmediate(outboxRecord);
+
+    return {
+      organization,
+      settings,
+      adminUser,
+    };
   }
 
   public static async listOrganizations(options: {
@@ -246,7 +239,7 @@ export class PlatformAdminService {
       throw new ValidationError(`Invalid organization status '${newStatus}'`);
     }
 
-    return await withTransaction(async (txClient) => {
+    const { updatedOrg, outboxRecord } = await withTransaction(async (txClient) => {
       const res = await txClient.query<any>(
         `UPDATE organizations
          SET status = $1, updated_at = NOW()
@@ -288,7 +281,7 @@ export class PlatformAdminService {
         dbClient: txClient,
       });
 
-      await OutboxService.stageOutboxEvent({
+      const outboxRecord = await OutboxService.stageOutboxEvent({
         organizationId: id,
         eventName,
         entityType: 'organization',
@@ -300,19 +293,13 @@ export class PlatformAdminService {
         dbClient: txClient,
       });
 
-      eventBus.publish({
-        eventName,
-        organizationId: id,
-        actorId,
-        entityType: 'organization',
-        entityId: id,
-        payload: { organizationId: id, previousStatus: org.status, status: newStatus, reason },
-        requestId,
-        correlationId,
-      });
-
-      return updatedOrg;
+      return { updatedOrg, outboxRecord };
     });
+
+    // Post-commit dispatch (never inside transaction)
+    await OutboxService.dispatchImmediate(outboxRecord);
+
+    return updatedOrg;
   }
 
   // --- PLATFORM SETTINGS ---

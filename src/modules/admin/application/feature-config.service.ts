@@ -7,7 +7,6 @@ import {
 } from '../domain/feature-configuration.entity.js';
 import { AuditService } from '../../../audit/audit.service.js';
 import { OutboxService } from '../../../events/outbox.service.js';
-import { eventBus } from '../../../events/event-bus.js';
 import { NotFoundError } from '../../../shared/errors/index.js';
 
 export class FeatureConfigService {
@@ -47,7 +46,7 @@ export class FeatureConfigService {
       featureKey
     );
 
-    return await withTransaction(async (txClient) => {
+    const { override, outboxRecord } = await withTransaction(async (txClient) => {
       const override = await FeatureConfigurationRepository.upsertOrganizationOverride(
         organizationId,
         featureKey,
@@ -75,7 +74,7 @@ export class FeatureConfigService {
         dbClient: txClient,
       });
 
-      await OutboxService.stageOutboxEvent({
+      const outboxRecord = await OutboxService.stageOutboxEvent({
         organizationId,
         eventName: 'feature_configuration.updated',
         entityType: 'feature_configuration',
@@ -87,19 +86,13 @@ export class FeatureConfigService {
         dbClient: txClient,
       });
 
-      eventBus.publish({
-        eventName: 'feature_configuration.updated',
-        organizationId,
-        actorId,
-        entityType: 'feature_configuration',
-        entityId: override.id,
-        payload: { organizationId, featureKey, isEnabled, configValue },
-        requestId,
-        correlationId,
-      });
-
-      return override;
+      return { override, outboxRecord };
     });
+
+    // Post-commit dispatch (never inside transaction)
+    await OutboxService.dispatchImmediate(outboxRecord);
+
+    return override;
   }
 
   public static async deleteOrganizationOverride(

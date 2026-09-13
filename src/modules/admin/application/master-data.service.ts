@@ -1,7 +1,6 @@
 import { getDbClient, withTransaction } from '../../../database/index.js';
 import { AuditService } from '../../../audit/audit.service.js';
-import { OutboxService } from '../../../events/outbox.service.js';
-import { eventBus } from '../../../events/event-bus.js';
+import { OutboxService, OutboxEventRecord } from '../../../events/outbox.service.js';
 import {
   NotFoundError,
   ConflictError,
@@ -53,7 +52,7 @@ export class MasterDataService {
       throw new ConflictError(`Work category with code '${data.code}' already exists in this organization`);
     }
 
-    return await withTransaction(async (txClient) => {
+    const { result, outboxRecord } = await withTransaction(async (txClient) => {
       const res = await txClient.query<any>(
         `INSERT INTO work_categories (organization_id, name, code, description, active, updated_at)
          VALUES ($1, $2, $3, $4, true, NOW())
@@ -75,7 +74,18 @@ export class MasterDataService {
         dbClient: txClient,
       });
 
-      return {
+      const outboxRecord = await OutboxService.stageOutboxEvent({
+        organizationId,
+        eventName: 'master_data.created',
+        entityType: 'work_category',
+        entityId: category.id,
+        actorId,
+        payload: { organizationId, entityType: 'work_category', entityId: category.id, code: category.code },
+        requestId,
+        dbClient: txClient,
+      });
+
+      const result = {
         id: category.id,
         organizationId: category.organization_id,
         name: category.name,
@@ -85,7 +95,14 @@ export class MasterDataService {
         createdAt: new Date(category.created_at),
         updatedAt: new Date(category.updated_at),
       };
+
+      return { result, outboxRecord };
     });
+
+    // Post-commit dispatch (never inside transaction)
+    await OutboxService.dispatchImmediate(outboxRecord);
+
+    return result;
   }
 
   public static async updateWorkCategory(
@@ -106,7 +123,7 @@ export class MasterDataService {
 
     const previous = checkRes.rows[0];
 
-    return await withTransaction(async (txClient) => {
+    const { result, outboxRecord } = await withTransaction(async (txClient) => {
       const res = await txClient.query<any>(
         `UPDATE work_categories
          SET name = COALESCE($1, name),
@@ -135,8 +152,9 @@ export class MasterDataService {
         dbClient: txClient,
       });
 
+      let outboxRecord: OutboxEventRecord | undefined;
       if (data.active === false) {
-        await OutboxService.stageOutboxEvent({
+        outboxRecord = await OutboxService.stageOutboxEvent({
           organizationId,
           eventName: 'master_data.retired',
           entityType: 'work_category',
@@ -146,19 +164,9 @@ export class MasterDataService {
           requestId,
           dbClient: txClient,
         });
-
-        eventBus.publish({
-          eventName: 'master_data.retired',
-          organizationId,
-          actorId,
-          entityType: 'work_category',
-          entityId: id,
-          payload: { organizationId, entityType: 'work_category', entityId: id },
-          requestId,
-        });
       }
 
-      return {
+      const result = {
         id: updated.id,
         organizationId: updated.organization_id,
         name: updated.name,
@@ -168,7 +176,16 @@ export class MasterDataService {
         createdAt: new Date(updated.created_at),
         updatedAt: new Date(updated.updated_at),
       };
+
+      return { result, outboxRecord };
     });
+
+    // Post-commit dispatch (never inside transaction)
+    if (outboxRecord) {
+      await OutboxService.dispatchImmediate(outboxRecord);
+    }
+
+    return result;
   }
 
   public static async deleteOrRetireWorkCategory(
@@ -288,7 +305,7 @@ export class MasterDataService {
       throw new NotFoundError(`Meeting type '${id}' not found in this organization`);
     }
 
-    return await withTransaction(async (txClient) => {
+    const { result, outboxRecord } = await withTransaction(async (txClient) => {
       const res = await txClient.query<any>(
         `UPDATE meeting_types
          SET name = COALESCE($1, name),
@@ -316,7 +333,21 @@ export class MasterDataService {
         dbClient: txClient,
       });
 
-      return {
+      let outboxRecord: OutboxEventRecord | undefined;
+      if (data.isActive === false) {
+        outboxRecord = await OutboxService.stageOutboxEvent({
+          organizationId,
+          eventName: 'master_data.retired',
+          entityType: 'meeting_type',
+          entityId: id,
+          actorId,
+          payload: { organizationId, entityType: 'meeting_type', entityId: id },
+          requestId,
+          dbClient: txClient,
+        });
+      }
+
+      const result = {
         id: updated.id,
         organizationId: updated.organization_id,
         name: updated.name,
@@ -326,7 +357,16 @@ export class MasterDataService {
         createdAt: new Date(updated.created_at),
         updatedAt: new Date(updated.updated_at),
       };
+
+      return { result, outboxRecord };
     });
+
+    // Post-commit dispatch (never inside transaction)
+    if (outboxRecord) {
+      await OutboxService.dispatchImmediate(outboxRecord);
+    }
+
+    return result;
   }
 
   public static async deleteOrRetireMeetingType(
@@ -581,7 +621,7 @@ export class MasterDataService {
       throw new NotFoundError(`Finance category '${id}' not found in this organization`);
     }
 
-    return await withTransaction(async (txClient) => {
+    const { result, outboxRecord } = await withTransaction(async (txClient) => {
       const res = await txClient.query<any>(
         `UPDATE finance_categories
          SET name = COALESCE($1, name),
@@ -609,7 +649,21 @@ export class MasterDataService {
         dbClient: txClient,
       });
 
-      return {
+      let outboxRecord: OutboxEventRecord | undefined;
+      if (data.isActive === false) {
+        outboxRecord = await OutboxService.stageOutboxEvent({
+          organizationId,
+          eventName: 'master_data.retired',
+          entityType: 'finance_category',
+          entityId: id,
+          actorId,
+          payload: { organizationId, entityType: 'finance_category', entityId: id },
+          requestId,
+          dbClient: txClient,
+        });
+      }
+
+      const result = {
         id: updated.id,
         organizationId: updated.organization_id,
         name: updated.name,
@@ -620,7 +674,16 @@ export class MasterDataService {
         createdAt: new Date(updated.created_at),
         updatedAt: new Date(updated.updated_at),
       };
+
+      return { result, outboxRecord };
     });
+
+    // Post-commit dispatch (never inside transaction)
+    if (outboxRecord) {
+      await OutboxService.dispatchImmediate(outboxRecord);
+    }
+
+    return result;
   }
 
   public static async deleteOrRetireFinanceCategory(

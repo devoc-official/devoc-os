@@ -3,7 +3,6 @@ import { OrganizationSettingsRepository } from '../infrastructure/organization-s
 import { OrganizationSettingsEntity, OrganizationSettingsProps } from '../domain/organization-settings.entity.js';
 import { AuditService } from '../../../audit/audit.service.js';
 import { OutboxService } from '../../../events/outbox.service.js';
-import { eventBus } from '../../../events/event-bus.js';
 import { NotFoundError } from '../../../shared/errors/index.js';
 
 export interface UpdateSettingsInput {
@@ -89,7 +88,7 @@ export class SettingsService {
 
     const previous = await this.getSettings(organizationId);
 
-    return await withTransaction(async (txClient) => {
+    const { updated, outboxRecord } = await withTransaction(async (txClient) => {
       const updated = await OrganizationSettingsRepository.upsert(
         {
           organizationId,
@@ -136,7 +135,7 @@ export class SettingsService {
         dbClient: txClient,
       });
 
-      await OutboxService.stageOutboxEvent({
+      const outboxRecord = await OutboxService.stageOutboxEvent({
         organizationId,
         eventName: 'organization.settings_updated',
         entityType: 'organization_settings',
@@ -148,18 +147,12 @@ export class SettingsService {
         dbClient: txClient,
       });
 
-      eventBus.publish({
-        eventName: 'organization.settings_updated',
-        organizationId,
-        actorId: input.actorId,
-        entityType: 'organization_settings',
-        entityId: organizationId,
-        payload: { organizationId, timezone: updated.timezone, currency: updated.currency },
-        requestId: input.requestId,
-        correlationId: input.correlationId,
-      });
-
-      return updated;
+      return { updated, outboxRecord };
     });
+
+    // Post-commit dispatch (never inside transaction)
+    await OutboxService.dispatchImmediate(outboxRecord);
+
+    return updated;
   }
 }
