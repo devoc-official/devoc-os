@@ -116,12 +116,12 @@ CREATE INDEX IF NOT EXISTS idx_analytics_reports_creator ON analytics_reports(or
 
 To support high-throughput live analytical aggregations without full table scans, source transactional tables should maintain composite operational indexes:
 
-* `work_logs`: `(organization_id, work_category_id, created_at)`
-* `financial_transactions`: `(organization_id, state, direction, created_at)`
-* `financial_obligations`: `(organization_id, state, created_at)`
+* `work_records`: `(organization_id, work_category_id, created_at)`
+* `financial_transactions`: `(organization_id, status, transaction_type, transaction_date)`
+* `financial_obligations`: `(organization_id, status, due_date)`
 * `learning_enrollments`: `(organization_id, status, created_at)`
 * `tasks`: `(organization_id, status, created_at)`
-* `evaluations`: `(organization_id, state, template_id, created_at)`
+* `evaluations`: `(organization_id, status, template_id, created_at)`
 * `criterion_results`: `(evaluation_id, criterion_id)`
 
 ---
@@ -130,11 +130,12 @@ To support high-throughput live analytical aggregations without full table scans
 
 PostgreSQL serves as the unified relational engine for operational CRUD and analytical queries. Introducing an out-of-band analytical data warehouse (e.g., ClickHouse, Snowflake, DuckDB) is deferred until the following empirical performance thresholds indicate a **Future Architecture Review**:
 
-1. **Row Volume Threshold Trigger**: Transactional source tables (e.g. `work_logs`, `audit_logs`) exceed 10 million rows per organization tenant.
+1. **Row Volume Threshold Trigger**: Transactional source tables (e.g. `work_records`, `audit_logs`) exceed 10 million rows per organization tenant.
 2. **Performance Contention Trigger**: Live analytical query execution causes measurable lock contention or API p99 latency degradation (>500ms) on transactional CRUD workloads.
 3. **High-Cardinality OLAP Trigger**: Requirements demand complex multi-dimensional OLAP cube slice-and-dice over multi-year historical datasets that cannot be served within 2 seconds by indexed PostgreSQL queries.
 
-When triggered, an architectural review will evaluate an out-of-band analytical replica or dedicated OLAP store fed asynchronously via the M10 Transactional Outbox.
+When triggered, an architectural review will evaluate an out-of-band analytical replica or dedicated OLAP store fed asynchronously via the M10 Transactional Outbox (`event_outbox`).
 
 ---
 *Document frozen for Milestone 11 – Analytics Database Schema.*
+

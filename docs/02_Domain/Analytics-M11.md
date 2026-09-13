@@ -32,7 +32,7 @@ Represents a declarative, reusable metric specification:
 * `code`: Unique machine-readable metric identifier (e.g., `KPI_PLACEMENT_RATE`).
 * `domainModule`: Target operational module (`organization`, `people`, `assignments`, `projects`, `work`, `meetings`, `learning`, `evaluation`, `finance`).
 * `metricType`: Aggregation type (`COUNT`, `SUM`, `AVERAGE`, `MIN`, `MAX`, `RATE`, `PERCENTAGE`, `WEIGHTED_AGGREGATION`, `TREND`).
-* `calculationSpec`: Declarative JSON structure defining source entities, fields, filter rules, numerator/denominator references, or weights from the Analytics Source Registry.
+* `calculationSpec`: Declarative JSON structure defining logical source entities, target fields, filter rules, numerator/denominator references, or weights from the Analytics Source Registry.
 * `supportedDimensions`: Array of allowed dimension codes (e.g., `["organization_id", "business_unit_id", "learning_program_id", "time_period"]`).
 * `createdBy`: User ID initiating metric creation (UUID).
 * `isActive`: Boolean flag indicating if metric is available for queries.
@@ -76,13 +76,13 @@ Metric specifications (`calculationSpec`) are validated against an explicit Anal
 
 ### Allowlist Schema Registry Specifications:
 
-1. **Allowed Source Entities**:
-   * `work_logs`, `work_categories`, `work_outcomes`, `work_evidence`
-   * `projects`, `project_business_units`, `project_owners`, `tasks`, `task_dependencies`
-   * `learning_programs`, `learning_program_milestones`, `learning_enrollments`, `enrollment_milestones`, `learning_reviews`, `assessments`, `assessment_attempts`
-   * `evaluation_templates`, `evaluation_criteria`, `evaluations`, `criterion_results`, `evaluation_outcomes`
-   * `finance_categories`, `financial_parties`, `financial_obligations`, `financial_transactions`, `financial_allocations`, `financial_budgets`
-   * `people`, `user_identities`, `employments`, `skills`, `assignments`, `meetings`, `audit_logs`
+1. **Allowed Logical Source Entities**:
+   * `WORK_RECORD`, `WORK_CATEGORY`, `WORK_EVIDENCE`, `OUTCOME`, `WORK_OUTCOME`
+   * `PROJECT`, `PROJECT_OWNER`, `PROJECT_BUSINESS_UNIT`, `TASK`, `TASK_DEPENDENCY`
+   * `LEARNING_PROGRAM`, `LEARNING_PROGRAM_MILESTONE`, `LEARNING_ACTIVITY_DEFINITION`, `LEARNING_ENROLLMENT`, `ENROLLMENT_MILESTONE`, `LEARNING_ACTIVITY`, `LEARNING_REVIEW`, `LEARNING_ASSESSMENT`
+   * `EVALUATION_TEMPLATE`, `EVALUATION_CRITERION`, `EVALUATION`, `CRITERION_RESULT`, `EVALUATION_OUTCOME`
+   * `FINANCE_CATEGORY`, `FINANCIAL_PARTY`, `FINANCIAL_OBLIGATION`, `FINANCIAL_TRANSACTION`, `FINANCIAL_ALLOCATION`, `FINANCIAL_BUDGET`
+   * `PERSON`, `ROLE`, `PERSON_ROLE`, `EMPLOYMENT`, `SKILL`, `PERSON_SKILL`, `ASSIGNMENT`, `MEETING`, `MEETING_PARTICIPANT`, `AUDIT_LOG`, `EVENT_OUTBOX`
 
 2. **Allowed Filter Operators**:
    * `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `between`, `is_null`, `is_not_null`
@@ -91,17 +91,17 @@ Metric specifications (`calculationSpec`) are validated against an explicit Anal
    * `COUNT`, `SUM`, `AVERAGE`, `MIN`, `MAX`, `RATE`, `PERCENTAGE`, `WEIGHTED_AGGREGATION`, `TREND`
 
 4. **Allowed Relationships & Joins**:
-   * `learning_enrollments -> people` via `person_id`
-   * `learning_enrollments -> learning_programs` via `learning_program_id`
-   * `criterion_results -> evaluations` via `evaluation_id`
-   * `evaluations -> evaluation_templates` via `template_id`
-   * `evaluations -> people` via `subject_id`
-   * `financial_obligations -> finance_categories` via `category_id`
-   * `financial_transactions -> financial_parties` via `party_id`
-   * `work_logs -> work_categories` via `work_category_id`
-   * `work_logs -> projects` via `project_id`
-   * `tasks -> projects` via `project_id`
-   * `employments -> people` via `person_id`
+   * `LEARNING_ENROLLMENT -> PERSON` via `student_id` / `mentor_id`
+   * `LEARNING_ENROLLMENT -> LEARNING_PROGRAM` via `program_id`
+   * `CRITERION_RESULT -> EVALUATION` via `evaluation_id`
+   * `EVALUATION -> EVALUATION_TEMPLATE` via `template_id`
+   * `EVALUATION -> PERSON` via `evaluatee_id`
+   * `FINANCIAL_OBLIGATION -> FINANCIAL_PARTY` via `party_id`
+   * `FINANCIAL_TRANSACTION -> FINANCIAL_PARTY` via `party_id`
+   * `WORK_RECORD -> WORK_CATEGORY` via `work_category_id`
+   * `WORK_RECORD -> PROJECT` via `project_id`
+   * `TASK -> PROJECT` via `project_id`
+   * `EMPLOYMENT -> PERSON` via `person_id`
 
 ---
 
@@ -111,7 +111,7 @@ Metric specifications (`calculationSpec`) are validated against an explicit Anal
 ```json
 {
   "metricType": "COUNT",
-  "sourceEntity": "work_logs",
+  "sourceEntity": "WORK_RECORD",
   "filter": {
     "work_category_id": "cat-strategy-uuid"
   }
@@ -122,11 +122,11 @@ Metric specifications (`calculationSpec`) are validated against an explicit Anal
 ```json
 {
   "metricType": "SUM",
-  "sourceEntity": "financial_transactions",
+  "sourceEntity": "FINANCIAL_TRANSACTION",
   "targetColumn": "amount",
   "filter": {
-    "direction": "inflow",
-    "state": "Posted"
+    "transaction_type": "payment",
+    "status": "posted"
   }
 }
 ```
@@ -135,14 +135,14 @@ Metric specifications (`calculationSpec`) are validated against an explicit Anal
 ```json
 {
   "metricType": "AVERAGE",
-  "sourceEntity": "criterion_results",
-  "targetColumn": "value",
+  "sourceEntity": "CRITERION_RESULT",
+  "targetColumn": "score",
   "join": {
-    "targetEntity": "evaluations",
+    "targetEntity": "EVALUATION",
     "onField": "evaluation_id"
   },
   "filter": {
-    "evaluations.state": "Completed"
+    "evaluations.status": "completed"
   }
 }
 ```
@@ -152,11 +152,11 @@ Metric specifications (`calculationSpec`) are validated against an explicit Anal
 {
   "metricType": "PERCENTAGE",
   "numerator": {
-    "sourceEntity": "learning_enrollments",
+    "sourceEntity": "LEARNING_ENROLLMENT",
     "filter": { "status": "completed" }
   },
   "denominator": {
-    "sourceEntity": "learning_enrollments",
+    "sourceEntity": "LEARNING_ENROLLMENT",
     "filter": { "status": ["completed", "withdrawn", "cancelled"] }
   }
 }
@@ -173,21 +173,21 @@ Metric specifications (`calculationSpec`) are validated against an explicit Anal
 | `business_unit_id` | `business_unit_id` | Organization, Projects, Work, Learning, Finance |
 | `department_id` | `department_id` | Organization, People, Finance |
 | `team_id` | `team_id` | Organization, People, Projects |
-| `person_id` | `person_id` / `subject_id` | People, Assignments, Work, Meetings, Learning, Evaluation |
+| `person_id` | `person_id` / `evaluatee_id` / `student_id` | People, Assignments, Work, Meetings, Learning, Evaluation |
 | `role_id` | `role_id` | People, Assignments |
 | `project_id` | `project_id` | Projects, Work, Finance |
 | `task_id` | `task_id` | Projects, Work |
-| `learning_program_id` | `learning_program_id` | Learning, Evaluation |
-| `evaluation_template_id` | `template_id` | Evaluation |
+| `learning_program_id` | `program_id` | Learning, Evaluation |
+| `template_id` | `template_id` | Evaluation |
 | `category_id` | `category_id` / `work_category_id` | Work, Finance |
-| `time_period` | `created_at` / `posted_at` / `started_at` | All Modules |
+| `time_period` | `created_at` / `transaction_date` / `start_time` | All Modules |
 
 ---
 
 ## Domain Business Rules & Security Constraints
 
 1. **Read-Only Non-Authoritative Engine**: Analytics operations must never mutate operational source data. Derived analytical metrics cannot be written back to transactional tables as primary state.
-2. **Allowlist Spec Execution Safety**: Metric specifications must parse strictly against the Analytics Source Registry. Dynamic raw SQL execution or arbitrary script invocation is strictly prohibited.
+2. **Allowlist Spec Execution Safety**: Metric specifications must parse strictly against registered logical source entities in the Analytics Source Registry. Dynamic raw SQL execution or arbitrary script invocation is strictly prohibited.
 3. **Mandatory Tenant Scoping**: All metric definition lookups, query evaluations, snapshot retrievals, and report executions must enforce `organization_id = $1`. Cross-tenant queries return HTTP `404 Not Found`.
 4. **Per-Execution Contextual Scope Security**:
    * Viewing metrics (`analytics:view`) is constrained by the caller's organizational scope (`Role + Business Unit + Team + Project`).
@@ -205,10 +205,10 @@ Metric specifications (`calculationSpec`) are validated against an explicit Anal
   │ Organization Engine  ├──────────┐ (organizations, branches, business_units, departments, teams)
   └──────────────────────┘          │
   ┌──────────────────────┐          │
-  │    People Engine     ├──────────┤ (people, user_identities, employments, skills)
+  │    People Engine     ├──────────┤ (people, roles, person_roles, employments, skills)
   └──────────────────────┘          │
   ┌──────────────────────┐          │
-  │  Assignment Engine   ├──────────┤ (assignments)
+  │  Assignment Engine   ├──────────┤ (assignments, assignment_history)
   └──────────────────────┘          │
   ┌──────────────────────┐          │
   │Projects/Tasks Engine ├──────────┤ (projects, tasks, task_dependencies)
@@ -220,7 +220,7 @@ Metric specifications (`calculationSpec`) are validated against an explicit Anal
   │   Meetings Engine    ├──────────┤ (meetings, meeting_participants)
   └──────────────────────┘          │
   ┌──────────────────────┐          │
-  │   Learning Engine    ├──────────┤ (learning_programs, learning_enrollments, assessments)
+  │   Learning Engine    ├──────────┤ (learning_programs, learning_enrollments, learning_assessments)
   └──────────────────────┘          │
   ┌──────────────────────┐          │
   │  Evaluation Engine   ├──────────┤ (evaluations, evaluation_templates, criterion_results)
@@ -232,3 +232,4 @@ Metric specifications (`calculationSpec`) are validated against an explicit Anal
 
 ---
 *Document frozen for Milestone 11 — Analytics Engine Architecture.*
+

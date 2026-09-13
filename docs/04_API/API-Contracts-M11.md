@@ -24,11 +24,11 @@ All endpoints require JWT Authentication (`Authorization: Bearer <token>`) and m
 ## Declarative Safety Validation
 
 All `calculationSpec` structures submitted via `POST /api/v1/analytics/metrics` are validated against the **Analytics Source Registry**:
-* Allowed source entities: `work_logs`, `projects`, `tasks`, `learning_enrollments`, `learning_programs`, `evaluations`, `criterion_results`, `financial_obligations`, `financial_transactions`, `financial_budgets`, `people`, `employments`, `assignments`, `meetings`, `audit_logs`.
+* Allowed logical source entities: `WORK_RECORD`, `WORK_CATEGORY`, `WORK_EVIDENCE`, `OUTCOME`, `WORK_OUTCOME`, `PROJECT`, `PROJECT_OWNER`, `PROJECT_BUSINESS_UNIT`, `TASK`, `TASK_DEPENDENCY`, `LEARNING_PROGRAM`, `LEARNING_PROGRAM_MILESTONE`, `LEARNING_ACTIVITY_DEFINITION`, `LEARNING_ENROLLMENT`, `ENROLLMENT_MILESTONE`, `LEARNING_ACTIVITY`, `LEARNING_REVIEW`, `LEARNING_ASSESSMENT`, `EVALUATION_TEMPLATE`, `EVALUATION_CRITERION`, `EVALUATION`, `CRITERION_RESULT`, `EVALUATION_OUTCOME`, `FINANCE_CATEGORY`, `FINANCIAL_PARTY`, `FINANCIAL_OBLIGATION`, `FINANCIAL_TRANSACTION`, `FINANCIAL_ALLOCATION`, `FINANCIAL_BUDGET`, `PERSON`, `ROLE`, `PERSON_ROLE`, `EMPLOYMENT`, `SKILL`, `PERSON_SKILL`, `ASSIGNMENT`, `MEETING`, `MEETING_PARTICIPANT`, `AUDIT_LOG`, `EVENT_OUTBOX`.
 * Allowed operators: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `between`, `is_null`, `is_not_null`.
 * Allowed aggregations: `COUNT`, `SUM`, `AVERAGE`, `MIN`, `MAX`, `RATE`, `PERCENTAGE`, `WEIGHTED_AGGREGATION`, `TREND`.
 
-Requests containing unlisted table names, column names, raw SQL fragments, or dynamic code snippets return HTTP `400 Bad Request`.
+Requests containing unlisted logical entity identifiers, physical table names, column names, raw SQL fragments, or dynamic code snippets return HTTP `400 Bad Request`.
 
 ---
 
@@ -80,11 +80,11 @@ Creates a new declarative metric specification for the tenant.
   "metricType": "PERCENTAGE",
   "calculationSpec": {
     "numerator": {
-      "sourceEntity": "learning_enrollments",
+      "sourceEntity": "LEARNING_ENROLLMENT",
       "filter": { "status": "completed", "is_placed": true }
     },
     "denominator": {
-      "sourceEntity": "learning_enrollments",
+      "sourceEntity": "LEARNING_ENROLLMENT",
       "filter": { "status": "completed" }
     }
   },
@@ -104,11 +104,11 @@ Creates a new declarative metric specification for the tenant.
     "metricType": "PERCENTAGE",
     "calculationSpec": {
       "numerator": {
-        "sourceEntity": "learning_enrollments",
+        "sourceEntity": "LEARNING_ENROLLMENT",
         "filter": { "status": "completed", "is_placed": true }
       },
       "denominator": {
-        "sourceEntity": "learning_enrollments",
+        "sourceEntity": "LEARNING_ENROLLMENT",
         "filter": { "status": "completed" }
       }
     },
@@ -181,8 +181,8 @@ Retrieves single metric definition by primary key.
     "domainModule": "learning",
     "metricType": "PERCENTAGE",
     "calculationSpec": {
-      "numerator": { "sourceEntity": "learning_enrollments", "filter": { "status": "completed", "is_placed": true } },
-      "denominator": { "sourceEntity": "learning_enrollments", "filter": { "status": "completed" } }
+      "numerator": { "sourceEntity": "LEARNING_ENROLLMENT", "filter": { "status": "completed", "is_placed": true } },
+      "denominator": { "sourceEntity": "LEARNING_ENROLLMENT", "filter": { "status": "completed" } }
     },
     "supportedDimensions": ["organization_id", "learning_program_id", "time_period"],
     "createdBy": "user-admin-uuid",
@@ -363,3 +363,4 @@ Executes a saved report query configuration, evaluating included metrics and ret
 
 ---
 *Document frozen for Milestone 11 – Analytics API Contracts.*
+

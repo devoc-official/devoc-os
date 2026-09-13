@@ -27,8 +27,8 @@ The architectural challenge is providing flexible, multi-tenant analytics withou
 ## Decision Drivers
 
 1. **Operational Domain Integrity**: Domain engines M1–M10 are the sole authoritative transactional source of truth. Analytics must be strictly read-oriented.
-2. **Reconciled Source Entity Accuracy**: Analytics queries must operate directly against established physical PostgreSQL table names (`work_logs`, `criterion_results`, `learning_enrollments`, `learning_programs`, `financial_obligations`, `financial_transactions`, `financial_parties`, `finance_categories`, `financial_budgets`, `people`, `employments`, `assignments`, `projects`, `tasks`, `meetings`, `audit_logs`).
-3. **Declarative Metric Safety & Allowlist Model**: Metric specifications must be structured JSON contracts validated against an explicit Analytics Source Registry (allowed entities, fields, operators, dimensions, joins, aggregations). Direct SQL string concatenation, raw SQL strings, arbitrary table/column references, and runtime script evaluation (`eval()`) are prohibited. All query execution resolves through a controlled parameter-bound query builder.
+2. **Reconciled Source Entity Accuracy**: Analytics queries must resolve directly to established physical PostgreSQL table names (`work_records`, `work_categories`, `work_evidence`, `outcomes`, `work_outcomes`, `criterion_results`, `evaluations`, `evaluation_templates`, `learning_enrollments`, `learning_programs`, `financial_obligations`, `financial_transactions`, `financial_parties`, `finance_categories`, `financial_budgets`, `people`, `employments`, `assignments`, `projects`, `tasks`, `meetings`, `audit_logs`, `event_outbox`).
+3. **Logical Source Identifier Abstraction & Declarative Metric Safety**: Metric specifications must use logical registered source identifiers (e.g., `WORK_RECORD`, `EVALUATION`, `LEARNING_ENROLLMENT`) defined in an explicit Analytics Source Registry (mapping logical entities to physical tables, allowed columns, operators, dimensions, joins, aggregations). Direct SQL string concatenation, raw SQL strings, arbitrary table/column references, and runtime script evaluation (`eval()`) are prohibited. All query execution resolves through a controlled parameter-bound query builder.
 4. **Multi-Tenancy & Per-Execution Contextual Authorization**: Analytics must enforce `organization_id` isolation and reuse the existing DeVoc OS permission model (`Role + Business Unit + Team + Project`). Setting `isPublic = true` on a saved report shares the report template configuration, NOT data access. Every report execution independently re-evaluates the executing user's authorized scope against every underlying metric and physical source table.
 5. **Immutable Snapshot Versioning**: Persisted rows in `analytics_metric_results` are append-only. Historical snapshot rows are never updated in place. Recalculations write a new snapshot row with `calculation_version = previous_version + 1` and a distinct `calculation_run_id`.
 6. **Architectural Simplicity**: DeVoc OS is built as a production-grade modular monolith. Introducing external OLAP data warehouses, distributed streaming buses, or separate microservices for V1 analytics adds unnecessary operational complexity.
@@ -39,7 +39,7 @@ The architectural challenge is providing flexible, multi-tenant analytics withou
 
 * **Option 1: Dynamic Unsafe SQL / Scripting Engine**: Allow administrators to write raw SQL snippets or JavaScript functions for metrics. (*Rejected*: Poses catastrophic SQL injection, security, and tenant isolation risks).
 * **Option 2: External Data Warehouse & ETL Pipeline (ClickHouse / Snowflake + Kafka)**: Asynchronously stream all operational data to an external OLAP database. (*Rejected*: Premature infrastructure complexity; operational dataset fits well within PostgreSQL).
-* **Option 3: Declarative Read-Only Analytics Engine within Modular Monolith**: Declarative JSON metric definitions validated against an Analytics Source Registry, live query evaluation over indexed PostgreSQL tables, immutable versioned snapshots for trend comparisons, strict multi-tenant and per-execution contextual authorization scoping. (*Selected*).
+* **Option 3: Declarative Read-Only Analytics Engine within Modular Monolith**: Declarative JSON metric definitions referencing registered logical source identifiers validated against an Analytics Source Registry, live query evaluation over indexed PostgreSQL tables, immutable versioned snapshots for trend comparisons, strict multi-tenant and per-execution contextual authorization scoping. (*Selected*).
 
 ---
 
@@ -50,7 +50,7 @@ The architectural challenge is providing flexible, multi-tenant analytics withou
 ### Key Architectural Decisions:
 
 1. **Read-Only Downstream Integration**: The Analytics Engine reads directly from M1–M10 physical PostgreSQL tables. It does not duplicate operational entities or own primary business state.
-2. **Analytics Source Registry Allowlist**: Metric definitions are validated against an explicit allowlist registry before execution. The query builder constructs parameter-bound SQL queries exclusively for registered entities, fields, operators, joins, and aggregations.
+2. **Analytics Source Registry Allowlist**: Metric definitions reference registered logical source identifiers validated against an explicit allowlist registry before execution. The query builder constructs parameter-bound SQL queries exclusively for registered entities, fields, operators, joins, and aggregations.
 3. **Hybrid Computation & Immutable Versioned Snapshots**:
    * **Live Query Computation**: Primary mode for real-time dashboards and reports. Executed against composite-indexed source tables.
    * **Stored Metric Snapshots**: `analytics_metric_results` table stores periodic append-only snapshots (`day`, `week`, `month`, `quarter`, `year`) with `calculation_version` and `calculation_run_id` for historical trend comparisons. In-place updates to snapshot rows are strictly prohibited.
@@ -79,7 +79,7 @@ The architectural challenge is providing flexible, multi-tenant analytics withou
 ```text
  ┌────────────────────────────────────────────────────────┐
  │            Operational Monolith (M1–M10)               │
- │ work_logs, criterion_results, learning_enrollments,    │
+ │ work_records, criterion_results, learning_enrollments, │
  │ financial_obligations, financial_transactions, etc.    │
  └───────────────────────────┬────────────────────────────┘
                              │

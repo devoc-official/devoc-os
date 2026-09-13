@@ -8,7 +8,7 @@
 
 Milestone 11 establishes a read-only, extensible, multi-tenant **Analytics Engine** for DeVoc OS. It provides decision-support insights, performance metrics, key performance indicators (KPIs), and saved reports across all established operational domains (Organization, People, Assignments, Projects/Tasks, Work, Meetings, Learning, Evaluation, Finance, Audit/Events) without duplicating operational entities or altering domain state.
 
-M11 is a read-oriented analytical milestone. It operates as a modular-monolith engine within PostgreSQL, using an explicit Analytics Source Registry, declarative metric specifications, parameter-bound SQL query building, and contextual authorization.
+M11 is a read-oriented analytical milestone. It operates as a modular-monolith engine within PostgreSQL, using an explicit Analytics Source Registry, declarative metric specifications referencing registered logical source identifiers, parameter-bound SQL query building, and contextual authorization.
 
 ---
 
@@ -17,7 +17,8 @@ M11 is a read-oriented analytical milestone. It operates as a modular-monolith e
 ```text
                ┌─────────────────────────────────────────────────────────┐
                │    Operational Source of Truth (M1–M10 PostgreSQL)     │
-               │ work_logs, criterion_results, learning_enrollments, etc. │
+               │ work_records, criterion_results, learning_enrollments,   │
+               │ financial_transactions, event_outbox, audit_logs, etc.  │
                └────────────────────────────┬────────────────────────────┘
                                             │
                                             │ Parameterized Read-Only Queries (Allowlist Validated)
@@ -43,10 +44,10 @@ M11 is a read-oriented analytical milestone. It operates as a modular-monolith e
 ```
 
 1. **Non-Authoritative & Read-Only**: Operational domain engines (M1–M10) remain the sole authoritative source of truth. Analytics computes derived views, aggregations, and trends; it never owns or mutates transactional entities.
-2. **Reconciled Physical Source Entities**: All analytics queries operate directly against established physical table names (`work_logs`, `criterion_results`, `learning_enrollments`, `learning_programs`, `financial_obligations`, `financial_transactions`, `financial_parties`, `finance_categories`, `financial_budgets`, `people`, `employments`, `assignments`, `projects`, `tasks`, `meetings`, `audit_logs`).
-3. **Declarative Metric Safety & Allowlist Registry**: Metrics are specified via an explicit Analytics Source Registry defining allowed entities, fields, operators, dimensions, joins, and aggregations. Raw SQL strings, dynamic SQL concatenation, and runtime code execution (`eval()`) are strictly prohibited. All execution resolves through a controlled parameter-bound query builder.
+2. **Reconciled Physical Source Entities**: All analytics queries resolve directly to established M1–M10 physical database tables (`work_records`, `work_categories`, `work_evidence`, `outcomes`, `work_outcomes`, `criterion_results`, `evaluations`, `evaluation_templates`, `learning_enrollments`, `learning_programs`, `learning_program_milestones`, `enrollment_milestones`, `financial_obligations`, `financial_transactions`, `financial_parties`, `finance_categories`, `financial_budgets`, `people`, `employments`, `assignments`, `projects`, `tasks`, `meetings`, `audit_logs`, `event_outbox`). Generic aliases, missing tables (e.g. `work_logs`, `project_members`, `evaluation_records`, `outbox_events`), or compatibility views are strictly prohibited.
+3. **Logical Source Identifier Abstraction & Declarative Metric Safety**: User-facing `MetricDefinition.sourceEntity` values are registered logical source identifiers (e.g., `WORK_RECORD`, `EVALUATION`, `LEARNING_ENROLLMENT`, `FINANCIAL_TRANSACTION`) rather than raw PostgreSQL table names. Metrics are specified via an explicit Analytics Source Registry defining allowed logical entities, fields, operators, dimensions, joins, and aggregations. Raw SQL strings, dynamic SQL concatenation, and runtime code execution (`eval()`) are strictly prohibited. All execution resolves through a controlled parameter-bound query builder.
 4. **Strict Multi-Tenant Scoping**: Every metric definition, snapshot result, and saved report mandates `organization_id`. Cross-tenant queries return HTTP `404 Not Found`.
-5. **Contextual Scope-Bound Security**: Analytics access reuses the established DeVoc OS authorization model: `Role + Business Unit + Team + Project`. Setting `isPublic = true` on a saved report shares the report template configuration, NOT data access. Every report execution independently re-evaluates the executing user's authorized organizational scope against every underlying metric and source table.
+5. **Contextual Scope-Bound Security**: Analytics access reuses the established DeVoc OS authorization model: `Role + Business Unit + Team + Project`. Setting `isPublic = true` on a saved report shares the report template configuration, NOT data access. Every report execution independently re-evaluates the executing user's authorized organizational scope against every underlying metric and physical source table.
 6. **Immutable Versioned Metric Snapshots**: Persisted rows in `analytics_metric_results` are strictly append-only and immutable. Recalculations append a new row with `calculation_version = previous_version + 1` and a unique `calculation_run_id`.
 7. **Auditability & Event Consumption**: Changes to metric definitions and saved report configurations emit standard M10 domain events and produce immutable audit entries via `AuditService`.
 
@@ -54,20 +55,73 @@ M11 is a read-oriented analytical milestone. It operates as a modular-monolith e
 
 ## Reconciled Source Domain Entities & Physical Table Mapping
 
-The Analytics Engine maps queries across established physical database tables:
+The Analytics Engine maps queries across established M1–M10 physical database tables:
 
 | Operational Domain | Physical Source Tables | Reconciled Analytical Scope |
 |--------------------|------------------------|-----------------------------|
-| **Organization (M1)** | `organizations`, `branches`, `business_units`, `departments`, `teams`, `users` | Structural hierarchy, BU boundaries, team organization |
-| **People (M2)** | `people`, `user_identities`, `roles`, `person_roles`, `employments`, `skills`, `person_skills` | Headcount, employment types, manager reporting, skill inventory |
-| **Assignments (M3)** | `assignments` | Resource capacity allocation, person assignment tracking |
+| **Organization (M1)** | `organizations`, `branches`, `business_units`, `departments`, `teams`, `users`, `organization_memberships` | Structural hierarchy, BU boundaries, team organization |
+| **People (M2)** | `people`, `roles`, `person_roles`, `employments`, `employment_history`, `skills`, `person_skills` | Headcount, employment types, manager reporting, skill inventory |
+| **Assignments (M3)** | `assignments`, `assignment_history` | Resource capacity allocation, person assignment tracking |
 | **Projects & Tasks (M4)** | `projects`, `project_business_units`, `project_owners`, `tasks`, `task_dependencies` | Project lifecycle, task velocity, lead times, priority distribution |
-| **Work (M5)** | `work_categories`, `work_logs`, `work_outcomes`, `work_evidence` | Hours logged, work category breakdown, outcome deliverable counts, strategy work |
+| **Work (M5)** | `work_categories`, `work_records`, `work_evidence`, `outcomes`, `work_outcomes` | Hours logged, work category breakdown, outcome deliverable counts, strategy work |
 | **Meetings (M6)** | `meetings`, `meeting_participants`, `meeting_outcomes` | Scheduled vs actual meeting hours, decision outputs |
-| **Learning (M7)** | `learning_programs`, `learning_program_milestones`, `learning_activity_definitions`, `learning_enrollments`, `enrollment_milestones`, `learning_activities`, `learning_reviews`, `assessments`, `assessment_attempts` | Enrollment trends, completion velocity, review pass rates, assessment scores |
+| **Learning (M7)** | `learning_programs`, `learning_program_milestones`, `learning_activity_definitions`, `learning_enrollments`, `enrollment_milestones`, `learning_activities`, `learning_activity_references`, `learning_reviews`, `learning_review_changes`, `learning_assessments`, `learning_assessment_attempts` | Enrollment trends, completion velocity, review pass rates, assessment scores |
 | **Evaluation (M8)** | `evaluation_templates`, `evaluation_criteria`, `evaluations`, `evaluation_evaluators`, `criterion_results`, `evaluation_feedback`, `evaluation_outcomes`, `evaluation_history` | Qualitative/rating score distributions, completion rates, mentor evaluation ratings |
 | **Finance (M9)** | `finance_categories`, `financial_parties`, `financial_obligations`, `financial_obligation_items`, `financial_transactions`, `financial_allocations`, `financial_adjustments`, `financial_budgets` | Revenue, collection efficiency, budget utilization, payment modes, outstanding balances |
 | **Audit & Events (M10)** | `audit_logs`, `event_outbox`, `event_consumer_records`, `event_registry` | System mutation volume, audit activity counts, outbox delivery health |
+
+---
+
+## Analytics Source Registry (Logical → Physical Mapping)
+
+The Analytics Source Registry owns the mapping between logical source identifiers exposed in declarative metric definitions and physical PostgreSQL tables:
+
+| Logical Source Identifier | Physical Table | Primary Key | Tenant Column | Allowed Dimensions | Allowed Relationships |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `WORK_RECORD` | `work_records` | `id` | `organization_id` | `work_category_id`, `project_id`, `task_id`, `business_unit_id`, `person_id`, `created_at` | `WORK_CATEGORY` (`work_category_id`), `PROJECT` (`project_id`), `TASK` (`task_id`), `PERSON` (`person_id`), `BUSINESS_UNIT` (`business_unit_id`) |
+| `WORK_CATEGORY` | `work_categories` | `id` | `organization_id` | `code`, `name` | — |
+| `WORK_EVIDENCE` | `work_evidence` | `id` | `organization_id` | `work_record_id`, `evidence_type` | `WORK_RECORD` (`work_record_id`) |
+| `OUTCOME` | `outcomes` | `id` | `organization_id` | `status`, `created_at` | — |
+| `WORK_OUTCOME` | `work_outcomes` | `id` | `organization_id` | `work_record_id`, `outcome_id` | `WORK_RECORD` (`work_record_id`), `OUTCOME` (`outcome_id`) |
+| `EVALUATION` | `evaluations` | `id` | `organization_id` | `template_id`, `evaluatee_id`, `evaluatee_type`, `status`, `cycle_name`, `created_at` | `EVALUATION_TEMPLATE` (`template_id`), `PERSON` (`evaluatee_id`) |
+| `EVALUATION_TEMPLATE` | `evaluation_templates` | `id` | `organization_id` | `evaluation_type`, `code`, `status` | — |
+| `EVALUATION_CRITERION` | `evaluation_criteria` | `id` | `organization_id` | `template_id`, `category` | `EVALUATION_TEMPLATE` (`template_id`) |
+| `CRITERION_RESULT` | `criterion_results` | `id` | `organization_id` | `evaluation_id`, `criterion_id`, `score` | `EVALUATION` (`evaluation_id`), `EVALUATION_CRITERION` (`criterion_id`) |
+| `EVALUATION_FEEDBACK` | `evaluation_feedback` | `id` | `organization_id` | `evaluation_id`, `author_id`, `feedback_type` | `EVALUATION` (`evaluation_id`), `PERSON` (`author_id`) |
+| `EVALUATION_OUTCOME` | `evaluation_outcomes` | `id` | `organization_id` | `evaluation_id`, `outcome_type` | `EVALUATION` (`evaluation_id`) |
+| `LEARNING_PROGRAM` | `learning_programs` | `id` | `organization_id` | `code`, `status` | — |
+| `LEARNING_PROGRAM_MILESTONE` | `learning_program_milestones` | `id` | `organization_id` | `program_id`, `milestone_type` | `LEARNING_PROGRAM` (`program_id`) |
+| `LEARNING_ENROLLMENT` | `learning_enrollments` | `id` | `organization_id` | `program_id`, `student_id`, `mentor_id`, `status`, `created_at` | `LEARNING_PROGRAM` (`program_id`), `PERSON` (`student_id`), `PERSON` (`mentor_id`) |
+| `ENROLLMENT_MILESTONE` | `enrollment_milestones` | `id` | `organization_id` | `enrollment_id`, `program_milestone_id`, `status` | `LEARNING_ENROLLMENT` (`enrollment_id`), `LEARNING_PROGRAM_MILESTONE` (`program_milestone_id`) |
+| `LEARNING_ACTIVITY` | `learning_activities` | `id` | `organization_id` | `enrollment_milestone_id`, `status` | `ENROLLMENT_MILESTONE` (`enrollment_milestone_id`) |
+| `LEARNING_REVIEW` | `learning_reviews` | `id` | `organization_id` | `enrollment_id`, `reviewer_id`, `decision` | `LEARNING_ENROLLMENT` (`enrollment_id`), `PERSON` (`reviewer_id`) |
+| `LEARNING_ASSESSMENT` | `learning_assessments` | `id` | `organization_id` | `enrollment_id`, `evaluator_id`, `status` | `LEARNING_ENROLLMENT` (`enrollment_id`), `PERSON` (`evaluator_id`) |
+| `PERSON` | `people` | `id` | `organization_id` | `status`, `created_at` | `USER` (`user_id`) |
+| `USER` | `users` | `id` | — (Global User) | `status` | — |
+| `PERSON_ROLE` | `person_roles` | `id` | `organization_id` | `person_id`, `role_id`, `business_unit_id`, `department_id`, `team_id`, `status` | `PERSON` (`person_id`), `ROLE` (`role_id`), `BUSINESS_UNIT` (`business_unit_id`), `DEPARTMENT` (`department_id`), `TEAM` (`team_id`) |
+| `ROLE` | `roles` | `id` | `organization_id` | `code`, `name` | — |
+| `EMPLOYMENT` | `employments` | `id` | `organization_id` | `person_id`, `employment_type`, `status`, `department_id`, `business_unit_id`, `branch_id`, `manager_id` | `PERSON` (`person_id`), `PERSON` (`manager_id`), `DEPARTMENT` (`department_id`), `BUSINESS_UNIT` (`business_unit_id`), `BRANCH` (`branch_id`) |
+| `SKILL` | `skills` | `id` | `organization_id` | `code`, `category` | — |
+| `PERSON_SKILL` | `person_skills` | `id` | `organization_id` | `person_id`, `skill_id`, `proficiency_level` | `PERSON` (`person_id`), `SKILL` (`skill_id`) |
+| `ASSIGNMENT` | `assignments` | `id` | `organization_id` | `person_id`, `target_type`, `target_id`, `assignment_type`, `role_context`, `status` | `PERSON` (`person_id`) |
+| `PROJECT` | `projects` | `id` | `organization_id` | `code`, `project_type`, `status`, `created_at` | — |
+| `PROJECT_OWNER` | `project_owners` | `id` | `organization_id` | `project_id`, `person_id`, `owner_role` | `PROJECT` (`project_id`), `PERSON` (`person_id`) |
+| `PROJECT_BUSINESS_UNIT` | `project_business_units` | `id` | `organization_id` | `project_id`, `business_unit_id` | `PROJECT` (`project_id`), `BUSINESS_UNIT` (`business_unit_id`) |
+| `TASK` | `tasks` | `id` | `organization_id` | `project_id`, `assignee_id`, `status`, `priority` | `PROJECT` (`project_id`), `PERSON` (`assignee_id`) |
+| `MEETING` | `meetings` | `id` | `organization_id` | `project_id`, `business_unit_id`, `organizer_id`, `meeting_type`, `status`, `start_time` | `PROJECT` (`project_id`), `BUSINESS_UNIT` (`business_unit_id`), `PERSON` (`organizer_id`) |
+| `MEETING_PARTICIPANT` | `meeting_participants` | `id` | `organization_id` | `meeting_id`, `person_id`, `attendance_status` | `MEETING` (`meeting_id`), `PERSON` (`person_id`) |
+| `FINANCIAL_PARTY` | `financial_parties` | `id` | `organization_id` | `party_type`, `person_id`, `status` | `PERSON` (`person_id`) |
+| `FINANCE_CATEGORY` | `finance_categories` | `id` | `organization_id` | `code`, `type` | — |
+| `FINANCIAL_OBLIGATION` | `financial_obligations` | `id` | `organization_id` | `party_id`, `obligation_type`, `status`, `due_date` | `FINANCIAL_PARTY` (`party_id`) |
+| `FINANCIAL_TRANSACTION` | `financial_transactions` | `id` | `organization_id` | `transaction_type`, `party_id`, `payment_method`, `status`, `transaction_date` | `FINANCIAL_PARTY` (`party_id`) |
+| `FINANCIAL_ALLOCATION` | `financial_allocations` | `id` | `organization_id` | `transaction_id`, `obligation_id` | `FINANCIAL_TRANSACTION` (`transaction_id`), `FINANCIAL_OBLIGATION` (`obligation_id`) |
+| `FINANCIAL_BUDGET` | `financial_budgets` | `id` | `organization_id` | `business_unit_id`, `department_id`, `project_id`, `fiscal_year` | `BUSINESS_UNIT` (`business_unit_id`), `DEPARTMENT` (`department_id`), `PROJECT` (`project_id`) |
+| `AUDIT_LOG` | `audit_logs` | `id` | `organization_id` | `actor_id`, `action`, `entity_type`, `entity_id`, `created_at` | `USER` (`actor_id`) |
+| `EVENT_OUTBOX` | `event_outbox` | `id` | `organization_id` | `event_name`, `status`, `created_at` | — |
+| `BRANCH` | `branches` | `id` | `organization_id` | `code`, `name` | — |
+| `BUSINESS_UNIT` | `business_units` | `id` | `organization_id` | `code`, `name` | — |
+| `DEPARTMENT` | `departments` | `id` | `organization_id` | `code`, `name` | — |
+| `TEAM` | `teams` | `id` | `organization_id` | `department_id`, `code`, `name` | `DEPARTMENT` (`department_id`) |
 
 ---
 
@@ -77,22 +131,26 @@ The Analytics Source Registry defines the strict allowlist for metric specificat
 
 ```json
 {
-  "allowedEntities": [
-    "work_logs", "projects", "tasks", "learning_enrollments", "learning_programs",
-    "evaluations", "criterion_results", "financial_obligations", "financial_transactions",
-    "financial_budgets", "people", "employments", "assignments", "meetings", "audit_logs"
+  "allowedLogicalEntities": [
+    "WORK_RECORD", "WORK_CATEGORY", "WORK_EVIDENCE", "OUTCOME", "WORK_OUTCOME",
+    "PROJECT", "PROJECT_OWNER", "PROJECT_BUSINESS_UNIT", "TASK", "TASK_DEPENDENCY",
+    "LEARNING_PROGRAM", "LEARNING_PROGRAM_MILESTONE", "LEARNING_ACTIVITY_DEFINITION",
+    "LEARNING_ENROLLMENT", "ENROLLMENT_MILESTONE", "LEARNING_ACTIVITY", "LEARNING_REVIEW", "LEARNING_ASSESSMENT",
+    "EVALUATION_TEMPLATE", "EVALUATION_CRITERION", "EVALUATION", "CRITERION_RESULT", "EVALUATION_OUTCOME",
+    "FINANCE_CATEGORY", "FINANCIAL_PARTY", "FINANCIAL_OBLIGATION", "FINANCIAL_TRANSACTION", "FINANCIAL_ALLOCATION", "FINANCIAL_BUDGET",
+    "PERSON", "ROLE", "PERSON_ROLE", "EMPLOYMENT", "SKILL", "PERSON_SKILL", "ASSIGNMENT", "MEETING", "MEETING_PARTICIPANT", "AUDIT_LOG", "EVENT_OUTBOX"
   ],
   "allowedOperators": ["eq", "neq", "gt", "gte", "lt", "lte", "in", "not_in", "between", "is_null", "is_not_null"],
   "allowedAggregations": ["COUNT", "SUM", "AVERAGE", "MIN", "MAX", "RATE", "PERCENTAGE", "WEIGHTED_AGGREGATION", "TREND"],
   "allowedDimensions": [
     "organization_id", "branch_id", "business_unit_id", "department_id", "team_id",
     "person_id", "role_id", "project_id", "task_id", "learning_program_id",
-    "evaluation_template_id", "category_id", "time_period"
+    "template_id", "category_id", "work_category_id", "time_period"
   ]
 }
 ```
 
-Metric definitions violating this registry are rejected at validation time before database query construction.
+Metric definitions violating this registry or attempting to specify unlisted logical entities or arbitrary raw SQL strings are rejected at validation time before database query construction.
 
 ---
 
@@ -101,57 +159,65 @@ Metric definitions violating this registry are rejected at validation time befor
 ### 1. Placement Rate (Academy KPI)
 * **Code**: `KPI_PLACEMENT_RATE`
 * **Domain**: `learning`
-* **Formula Spec**: `(Count of Completed learning_enrollments with Placement / Count of Total Completed learning_enrollments) * 100`
+* **Formula Spec**: `(Count of Completed LEARNING_ENROLLMENT with Placement / Count of Total Completed LEARNING_ENROLLMENT) * 100`
+* **Logical Source Entity**: `LEARNING_ENROLLMENT`
 * **Physical Tables**: `learning_enrollments`, `employments`
 * **Dimensions**: `organization_id`, `learning_program_id`, `time_period`
 
 ### 2. Internship Rate (Academy KPI)
 * **Code**: `KPI_INTERNSHIP_RATE`
 * **Domain**: `learning`
-* **Formula Spec**: `(Count of Active learning_enrollments with Active Internship Assignment / Count of Total Active learning_enrollments) * 100`
+* **Formula Spec**: `(Count of Active LEARNING_ENROLLMENT with Active Internship Assignment / Count of Total Active LEARNING_ENROLLMENT) * 100`
+* **Logical Source Entity**: `LEARNING_ENROLLMENT`
 * **Physical Tables**: `learning_enrollments`, `assignments`
 * **Dimensions**: `organization_id`, `learning_program_id`, `business_unit_id`, `time_period`
 
 ### 3. Student Satisfaction (Academy KPI)
 * **Code**: `KPI_STUDENT_SATISFACTION`
 * **Domain**: `evaluation`
-* **Formula Spec**: `Average numeric value in criterion_results for evaluations linked to Student/Mentorship templates`
+* **Formula Spec**: `Average numeric value in CRITERION_RESULT for EVALUATION linked to Student/Mentorship templates`
+* **Logical Source Entity**: `CRITERION_RESULT`
 * **Physical Tables**: `evaluations`, `criterion_results`, `evaluation_templates`
 * **Dimensions**: `organization_id`, `learning_program_id`, `person_id`, `time_period`
 
 ### 4. Completion Rate (Academy KPI)
 * **Code**: `KPI_COMPLETION_RATE`
 * **Domain**: `learning`
-* **Formula Spec**: `(Count of learning_enrollments where status = 'completed' / Count of Closed learning_enrollments) * 100`
+* **Formula Spec**: `(Count of LEARNING_ENROLLMENT where status = 'completed' / Count of Closed LEARNING_ENROLLMENT) * 100`
+* **Logical Source Entity**: `LEARNING_ENROLLMENT`
 * **Physical Tables**: `learning_enrollments`
 * **Dimensions**: `organization_id`, `learning_program_id`, `time_period`
 
 ### 5. Alumni Success (Academy KPI)
 * **Code**: `KPI_ALUMNI_SUCCESS`
 * **Domain**: `people`
-* **Formula Spec**: `Count of Active employments for Persons with Completed learning_enrollments / Total Completed Students`
+* **Formula Spec**: `Count of Active EMPLOYMENT for Persons with Completed LEARNING_ENROLLMENT / Total Completed Students`
+* **Logical Source Entity**: `PERSON`
 * **Physical Tables**: `people`, `employments`, `learning_enrollments`
 * **Dimensions**: `organization_id`, `learning_program_id`, `time_period`
 
 ### 6. Student Growth (Academy KPI)
 * **Code**: `KPI_STUDENT_GROWTH`
 * **Domain**: `learning`
-* **Formula Spec**: `((Current Period learning_enrollments - Previous Period learning_enrollments) / Previous Period learning_enrollments) * 100`
+* **Formula Spec**: `((Current Period LEARNING_ENROLLMENT - Previous Period LEARNING_ENROLLMENT) / Previous Period LEARNING_ENROLLMENT) * 100`
+* **Logical Source Entity**: `LEARNING_ENROLLMENT`
 * **Physical Tables**: `learning_enrollments`
 * **Dimensions**: `organization_id`, `learning_program_id`, `time_period`
 
 ### 7. Revenue (Finance KPI)
 * **Code**: `KPI_REVENUE`
 * **Domain**: `finance`
-* **Formula Spec**: `Sum of amount in financial_transactions where direction = 'inflow' AND state = 'Posted'`
+* **Formula Spec**: `Sum of amount in FINANCIAL_TRANSACTION where transaction_type = 'payment' AND status = 'posted'`
+* **Logical Source Entity**: `FINANCIAL_TRANSACTION`
 * **Physical Tables**: `financial_transactions`, `financial_parties`, `finance_categories`
 * **Dimensions**: `organization_id`, `business_unit_id`, `department_id`, `category_id`, `time_period`
 
 ### 8. Founder Contribution (Work KPI)
 * **Code**: `KPI_FOUNDER_CONTRIBUTION`
 * **Domain**: `work`
-* **Formula Spec**: `Sum of duration_minutes in work_logs for Founders where work_category code IN ('STRATEGY', 'VISION', 'PARTNERSHIPS')`
-* **Physical Tables**: `work_logs`, `work_categories`, `people`, `employments`
+* **Formula Spec**: `Sum of duration_minutes in WORK_RECORD for Founders where WORK_CATEGORY code IN ('STRATEGY', 'VISION', 'PARTNERSHIPS')`
+* **Logical Source Entity**: `WORK_RECORD`
+* **Physical Tables**: `work_records`, `work_categories`, `people`, `employments`
 * **Dimensions**: `organization_id`, `business_unit_id`, `work_category_id`, `time_period`
 
 ---
@@ -176,9 +242,10 @@ Metric definitions violating this registry are rejected at validation time befor
 
 PostgreSQL serves as the unified relational store for both operational CRUD and analytical queries. Introducing an out-of-band analytical data warehouse (e.g., ClickHouse, Snowflake, DuckDB) is deferred until the following triggers indicate a **Future Architecture Review**:
 
-1. **Row Volume Threshold Trigger**: Transactional source tables (e.g. `work_logs`, `audit_logs`) exceed 10 million rows per organization tenant.
+1. **Row Volume Threshold Trigger**: Transactional source tables (e.g. `work_records`, `audit_logs`) exceed 10 million rows per organization tenant.
 2. **Performance Degradation Trigger**: Live analytical query execution causes measurable lock contention or API p99 latency degradation (>500ms) on transactional CRUD workloads.
 3. **High-Cardinality OLAP Trigger**: Business requirements demand complex multi-dimensional OLAP cube slice-and-dice over multi-year historical datasets that cannot be served within 2 seconds by indexed PostgreSQL queries.
 
 ---
 *Document frozen for Milestone 11 — Analytics Engine Architecture.*
+
