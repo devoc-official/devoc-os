@@ -7,6 +7,7 @@
 * **Tenant Isolation**: Every table contains `organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE`.
 * **Tenant Composite Indexing**: Core tables feature `(organization_id, id)` composite indexes to enforce service-level tenant boundary validation.
 * **Audit Compliance**: Mutation timestamping (`created_at`, `updated_at`). Soft deletion is avoided unless explicitly required; status machines control entity lifecycles.
+* **Zero Entity Duplication**: No duplicate tables for candidates, people, employments, roles, assignments, projects, tasks, or financial obligations.
 
 ---
 
@@ -34,7 +35,7 @@ CREATE TABLE IF NOT EXISTS workforce_onboarding_template_tasks (
     template_id UUID NOT NULL REFERENCES workforce_onboarding_templates(id) ON DELETE CASCADE,
     title VARCHAR(200) NOT NULL,
     description TEXT NULL,
-    assignee_role_code VARCHAR(50) NULL,
+    assigned_role_context VARCHAR(100) NULL, -- Template role context (e.g. 'manager', 'hr_bp', 'buddy')
     due_offset_days INT NOT NULL DEFAULT 7,
     is_mandatory BOOLEAN NOT NULL DEFAULT TRUE,
     display_order INT NOT NULL DEFAULT 0,
@@ -42,14 +43,30 @@ CREATE TABLE IF NOT EXISTS workforce_onboarding_template_tasks (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3. Onboarding Plans (Instance per M2 Employment)
+-- 3. Onboarding Template Items / Requirements Definition
+CREATE TABLE IF NOT EXISTS workforce_onboarding_template_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    template_id UUID NOT NULL REFERENCES workforce_onboarding_templates(id) ON DELETE CASCADE,
+    template_task_id UUID NULL REFERENCES workforce_onboarding_template_tasks(id) ON DELETE SET NULL,
+    item_type VARCHAR(50) NOT NULL CHECK (item_type IN ('document_reference', 'policy_acknowledgement', 'equipment_receipt', 'access_confirmation', 'compliance_verification', 'other')),
+    title VARCHAR(200) NOT NULL,
+    description TEXT NULL,
+    is_required BOOLEAN NOT NULL DEFAULT TRUE,
+    sequence_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 4. Onboarding Plans (Instance per M2 Employment)
 CREATE TABLE IF NOT EXISTS workforce_onboarding_plans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     employment_id UUID NOT NULL REFERENCES employments(id) ON DELETE CASCADE,
     person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     template_id UUID NULL REFERENCES workforce_onboarding_templates(id) ON DELETE SET NULL,
-    status VARCHAR(30) NOT NULL DEFAULT 'initiated' CHECK (status IN ('draft', 'initiated', 'in_progress', 'completed', 'cancelled')),
+    status VARCHAR(30) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'initiated', 'in_progress', 'completed', 'cancelled')),
+    initiated_at TIMESTAMPTZ NULL,
     target_completion_date DATE NULL,
     actual_completion_date DATE NULL,
     notes TEXT NULL,
@@ -58,14 +75,16 @@ CREATE TABLE IF NOT EXISTS workforce_onboarding_plans (
     CONSTRAINT uq_workforce_onboarding_plans_employment UNIQUE (organization_id, employment_id)
 );
 
--- 4. Onboarding Tasks (Concrete instances)
+-- 5. Onboarding Tasks (Concrete instances)
+-- Note: Task person responsibility is authoritatively maintained in M3 assignments (target_type = 'task').
 CREATE TABLE IF NOT EXISTS workforce_onboarding_tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     plan_id UUID NOT NULL REFERENCES workforce_onboarding_plans(id) ON DELETE CASCADE,
+    template_task_id UUID NULL REFERENCES workforce_onboarding_template_tasks(id) ON DELETE SET NULL,
     title VARCHAR(200) NOT NULL,
     description TEXT NULL,
-    assignee_person_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
+    assigned_role_context VARCHAR(100) NULL, -- Non-authoritative snapshot context from template
     status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'skipped', 'failed')),
     is_mandatory BOOLEAN NOT NULL DEFAULT TRUE,
     display_order INT NOT NULL DEFAULT 0,
@@ -78,23 +97,24 @@ CREATE TABLE IF NOT EXISTS workforce_onboarding_tasks (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 5. Onboarding Requirements / Items (Document Metadata, Policy Receipts)
+-- 6. Onboarding Requirements / Items (Concrete instances instantiated from template items)
 CREATE TABLE IF NOT EXISTS workforce_onboarding_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     plan_id UUID NOT NULL REFERENCES workforce_onboarding_plans(id) ON DELETE CASCADE,
     task_id UUID NULL REFERENCES workforce_onboarding_tasks(id) ON DELETE SET NULL,
-    item_type VARCHAR(50) NOT NULL CHECK (item_type IN ('document_reference', 'policy_acknowledgement', 'equipment_receipt', 'access_confirmation', 'other')),
+    template_item_id UUID NULL REFERENCES workforce_onboarding_template_items(id) ON DELETE SET NULL,
+    item_type VARCHAR(50) NOT NULL CHECK (item_type IN ('document_reference', 'policy_acknowledgement', 'equipment_receipt', 'access_confirmation', 'compliance_verification', 'other')),
     title VARCHAR(200) NOT NULL,
-    status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'submitted', 'verified', 'waived')),
-    item_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'submitted', 'verified', 'rejected', 'skipped')),
+    item_metadata JSONB NOT NULL DEFAULT '{}'::jsonb, -- Stores URLs, verification reference numbers, receipt IDs (NO binary contents)
     verified_by_person_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
     verified_at TIMESTAMPTZ NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 6. Workforce Transfer Workflows
+-- 7. Workforce Transfer Workflows
 CREATE TABLE IF NOT EXISTS workforce_transfers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -108,16 +128,20 @@ CREATE TABLE IF NOT EXISTS workforce_transfers (
     target_team_id UUID NULL REFERENCES teams(id) ON DELETE SET NULL,
     source_manager_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
     target_manager_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
-    status VARCHAR(30) NOT NULL DEFAULT 'requested' CHECK (status IN ('requested', 'under_review', 'approved', 'executed', 'rejected', 'cancelled')),
+    status VARCHAR(30) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'submitted', 'pending_review', 'pending_approval', 'approved', 'executed', 'rejected', 'cancelled')),
     reason TEXT NULL,
     effective_date DATE NOT NULL,
+    submitted_at TIMESTAMPTZ NULL,
+    reviewed_at TIMESTAMPTZ NULL,
+    approved_at TIMESTAMPTZ NULL,
     approved_by_person_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
     executed_at TIMESTAMPTZ NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 7. Workforce Promotion Workflows
+-- 8. Workforce Promotion Workflows
+-- Coordinates title mutation on M2 employments, system role mutation on M2 person_roles, and assignments via M3.
 CREATE TABLE IF NOT EXISTS workforce_promotions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -125,18 +149,21 @@ CREATE TABLE IF NOT EXISTS workforce_promotions (
     person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     source_job_title VARCHAR(150) NOT NULL,
     target_job_title VARCHAR(150) NOT NULL,
-    source_role_id UUID NULL REFERENCES roles(id) ON DELETE SET NULL,
-    target_role_id UUID NULL REFERENCES roles(id) ON DELETE SET NULL,
-    status VARCHAR(30) NOT NULL DEFAULT 'requested' CHECK (status IN ('requested', 'under_review', 'approved', 'executed', 'rejected', 'cancelled')),
+    source_person_role_id UUID NULL REFERENCES person_roles(id) ON DELETE SET NULL,
+    target_person_role_id UUID NULL REFERENCES roles(id) ON DELETE SET NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'submitted', 'pending_review', 'pending_approval', 'approved', 'executed', 'rejected', 'cancelled')),
     reason TEXT NULL,
     effective_date DATE NOT NULL,
+    submitted_at TIMESTAMPTZ NULL,
+    reviewed_at TIMESTAMPTZ NULL,
+    approved_at TIMESTAMPTZ NULL,
     approved_by_person_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
     executed_at TIMESTAMPTZ NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 8. Workforce Offboarding Workflows
+-- 9. Workforce Offboarding Workflows
 CREATE TABLE IF NOT EXISTS workforce_offboardings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -152,7 +179,8 @@ CREATE TABLE IF NOT EXISTS workforce_offboardings (
     CONSTRAINT uq_workforce_offboardings_employment UNIQUE (organization_id, employment_id)
 );
 
--- 9. Workforce Offboarding Clearances
+-- 10. Workforce Offboarding Clearances
+-- Financial obligation clearance links optionally to M9 finance_obligations(id).
 CREATE TABLE IF NOT EXISTS workforce_offboarding_clearances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -160,6 +188,7 @@ CREATE TABLE IF NOT EXISTS workforce_offboarding_clearances (
     clearance_type VARCHAR(50) NOT NULL CHECK (clearance_type IN ('it_access', 'equipment_return', 'financial_settlement', 'knowledge_handover', 'other')),
     department_id UUID NULL REFERENCES departments(id) ON DELETE SET NULL,
     verifier_person_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
+    financial_obligation_id UUID NULL REFERENCES finance_obligations(id) ON DELETE SET NULL, -- M9 Finance Integration
     status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'cleared', 'waived')),
     notes TEXT NULL,
     cleared_at TIMESTAMPTZ NULL,
@@ -174,6 +203,8 @@ CREATE TABLE IF NOT EXISTS workforce_offboarding_clearances (
 
 ```sql
 CREATE INDEX IF NOT EXISTS idx_workforce_onboarding_templates_org ON workforce_onboarding_templates(organization_id);
+CREATE INDEX IF NOT EXISTS idx_workforce_onboarding_template_tasks_tpl ON workforce_onboarding_template_tasks(organization_id, template_id);
+CREATE INDEX IF NOT EXISTS idx_workforce_onboarding_template_items_tpl ON workforce_onboarding_template_items(organization_id, template_id);
 CREATE INDEX IF NOT EXISTS idx_workforce_onboarding_plans_org_emp ON workforce_onboarding_plans(organization_id, employment_id);
 CREATE INDEX IF NOT EXISTS idx_workforce_onboarding_plans_person ON workforce_onboarding_plans(organization_id, person_id);
 CREATE INDEX IF NOT EXISTS idx_workforce_onboarding_tasks_plan ON workforce_onboarding_tasks(organization_id, plan_id);
@@ -182,4 +213,6 @@ CREATE INDEX IF NOT EXISTS idx_workforce_transfers_org_emp ON workforce_transfer
 CREATE INDEX IF NOT EXISTS idx_workforce_promotions_org_emp ON workforce_promotions(organization_id, employment_id);
 CREATE INDEX IF NOT EXISTS idx_workforce_offboardings_org_emp ON workforce_offboardings(organization_id, employment_id);
 CREATE INDEX IF NOT EXISTS idx_workforce_offboarding_clearances_offboard ON workforce_offboarding_clearances(organization_id, offboarding_id);
+CREATE INDEX IF NOT EXISTS idx_workforce_offboarding_clearances_fin_obl ON workforce_offboarding_clearances(organization_id, financial_obligation_id);
 ```
+

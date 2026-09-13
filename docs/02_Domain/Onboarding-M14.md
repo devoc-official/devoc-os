@@ -24,6 +24,30 @@ classDiagram
         +Boolean isActive
     }
 
+    class OnboardingTemplateTask {
+        +UUID id
+        +UUID organizationId
+        +UUID templateId
+        +String title
+        +String description
+        +String assignedRoleContext
+        +Int dueOffsetDays
+        +Boolean isMandatory
+        +Int displayOrder
+    }
+
+    class OnboardingTemplateItem {
+        +UUID id
+        +UUID organizationId
+        +UUID templateId
+        +UUID templateTaskId
+        +String itemType
+        +String title
+        +String description
+        +Boolean isRequired
+        +Int sequenceOrder
+    }
+
     class OnboardingPlan {
         +UUID id
         +UUID organizationId
@@ -31,6 +55,7 @@ classDiagram
         +UUID personId
         +UUID templateId
         +PlanStatus status
+        +DateTime initiatedAt
         +DateTime targetCompletionDate
         +DateTime actualCompletionDate
     }
@@ -39,9 +64,10 @@ classDiagram
         +UUID id
         +UUID organizationId
         +UUID planId
+        +UUID templateTaskId
         +String title
         +String description
-        +UUID assigneePersonId
+        +String assignedRoleContext
         +TaskStatus status
         +Boolean isMandatory
         +Int displayOrder
@@ -54,6 +80,7 @@ classDiagram
         +UUID organizationId
         +UUID planId
         +UUID taskId
+        +UUID templateItemId
         +String itemType
         +String title
         +ItemStatus status
@@ -77,6 +104,10 @@ classDiagram
         +UUID targetManagerId
         +TransferStatus status
         +DateTime effectiveDate
+        +DateTime submittedAt
+        +DateTime reviewedAt
+        +DateTime approvedAt
+        +DateTime executedAt
     }
 
     class WorkforcePromotion {
@@ -84,12 +115,16 @@ classDiagram
         +UUID organizationId
         +UUID employmentId
         +UUID personId
-        +String sourceTitle
-        +String targetTitle
-        +UUID sourceRoleId
-        +UUID targetRoleId
+        +String sourceJobTitle
+        +String targetJobTitle
+        +UUID sourcePersonRoleId
+        +UUID targetPersonRoleId
         +PromotionStatus status
         +DateTime effectiveDate
+        +DateTime submittedAt
+        +DateTime reviewedAt
+        +DateTime approvedAt
+        +DateTime executedAt
     }
 
     class WorkforceOffboarding {
@@ -103,10 +138,25 @@ classDiagram
         +DateTime completedAt
     }
 
+    class WorkforceOffboardingClearance {
+        +UUID id
+        +UUID organizationId
+        +UUID offboardingId
+        +String clearanceType
+        +UUID departmentId
+        +UUID verifierPersonId
+        +UUID financialObligationId
+        +ClearanceStatus status
+        +DateTime clearedAt
+    }
+
+    OnboardingTemplate "1" -- "*" OnboardingTemplateTask : defines
+    OnboardingTemplate "1" -- "*" OnboardingTemplateItem : defines
     OnboardingTemplate "1" -- "*" OnboardingPlan : instantiates
     OnboardingPlan "1" -- "*" OnboardingTask : contains
     OnboardingPlan "1" -- "*" OnboardingItem : requires
     OnboardingTask "1" -- "0..*" OnboardingItem : groups
+    WorkforceOffboarding "1" -- "*" WorkforceOffboardingClearance : requires
 ```
 
 ---
@@ -114,79 +164,76 @@ classDiagram
 ## 3. Lifecycle State Machines & Business Rules
 
 ### 3.1 Onboarding Plan State Machine
-- `draft`: Created but not yet initiated.
-- `initiated`: Assigned to employment, tasks populated.
-- `in_progress`: Task completion underway.
-- `completed`: All mandatory tasks and verified items completed.
+- `draft`: Created manually or prepared automatically.
+- `initiated`: Assigned to employment, tasks and requirement items populated from template.
+- `in_progress`: Task completion and requirement submission underway.
+- `completed`: All mandatory tasks completed and required items verified.
 - `cancelled`: Plan aborted.
 
 ```text
-[draft] ──> [initiated] ──> [in_progress] ──> [completed]
-   │             │               │
-   └─────────────┴───────────────┴──> [cancelled]
+[draft] ──(initiate)──> [initiated] ──(start work)──> [in_progress] ──(all mandatory tasks done)──> [completed]
+   │                         │                              │
+   └──────(cancel)───────────┴──────(cancel)────────────────┴──────(cancel)──────────────────────────> [cancelled]
 ```
 
 ### 3.2 Onboarding Task State Machine
 - `pending` $\rightarrow$ `in_progress` $\rightarrow$ `completed` / `skipped` / `failed`.
 
 ### 3.3 Onboarding Requirement / Item State Machine
-- `pending` $\rightarrow$ `submitted` $\rightarrow$ `verified` / `waived`.
+- `pending` $\rightarrow$ `submitted` $\rightarrow$ `verified` / `rejected` / `skipped`.
 
 ### 3.4 Workforce Movement State Machine (Transfer / Promotion)
-- `requested` $\rightarrow$ `under_review` $\rightarrow$ `approved` $\rightarrow$ `executed` / `rejected` / `cancelled`.
+- `draft` $\rightarrow$ `submitted` $\rightarrow$ `pending_review` $\rightarrow$ `pending_approval` $\rightarrow$ `approved` $\rightarrow$ `executed` (or `rejected` / `cancelled`).
+
+```text
+[draft] ──(submit)──> [submitted] ──(review)──> [pending_review] ──(request approval)──> [pending_approval] ──(approve)──> [approved] ──(execute date)──> [executed]
+   │                      │                          │                                     │                         │
+   └──(cancel)────────────┴──(cancel)────────────────┴──(reject)───────────────────────────┴──(reject)──────────────────┴──(cancel)──> [rejected / cancelled]
+```
 
 ### 3.5 Workforce Offboarding State Machine
-- `initiated` $\rightarrow$ `clearance_in_progress` $\rightarrow$ `cleared` $\rightarrow$ `completed` / `cancelled`.
+- `initiated` $\rightarrow$ `clearance_in_progress` $\rightarrow$ `cleared` $\rightarrow$ `completed` (or `cancelled`).
 
 ---
 
 ## 4. Assignment & Placement Architecture (M3 Integration)
 
-M14 does **NOT** maintain duplicate assignment tables (`employee_projects`, `onboarding_members`).
-- **Mentor Assignment**: Created as an M3 `Assignment` record (`target_type = 'person'`, `role_context = 'mentor'`).
-- **Organizational Placement**: Created as an M3 `Assignment` record (`target_type = 'business_unit'` or `'team'`).
+M14 does **NOT** maintain duplicate assignment tables (`employee_projects`, `employee_teams`, `onboarding_assignees`).
+- **Onboarding Task Assignee**: Assigned using M3 `Assignments` with `target_type = 'task'`, `target_id = task.id`, and `assignment_type = 'task_assignment'`.
+- **Mentor Assignment**: Created using M3 `Assignments` with `target_type = 'team'`, `'department'`, `'student'`, or `'task'` and `assignment_type = 'mentor'` (or `role_context = 'onboarding_buddy'`).
+- **Organizational Placement**: Created as M3 `Assignments` (`target_type = 'business_unit'`, `'department'`, or `'team'`).
 - **Project Setup**: Assigned via M3 `Assignments` (`target_type = 'project'`).
 
 M14 orchestrates these setup calls during the `in_progress` onboarding phase.
 
 ---
 
-## 5. Employment & Identity Boundaries (M2 Integration)
+## 5. Promotion Authority Boundaries & Employment Coordination (M2 Integration)
 
 M14 strictly references:
 - M2 `people` table via `person_id`.
 - M2 `employments` table via `employment_id`.
 
-M14 does **NOT** alter M2 employment status until an authorized lifecycle workflow (`WorkforceTransfer`, `WorkforcePromotion`, `WorkforceOffboarding`) reaches the `executed` or `completed` state.
+A Promotion workflow explicitly separates authority concerns:
+1. **Job Position & Title**: Mutates M2 `employments.job_title` upon execution.
+2. **System / Organizational Role**: Mutates M2 `person_roles` / M12 `roles` upon execution.
+3. **Operational Responsibilities**: Creates or updates M3 `assignments` upon execution.
+
+M14 does **NOT** alter M2 employment status until an authorized lifecycle workflow reaches the `executed` or `completed` state.
 
 Upon offboarding execution:
-- M14 sets M2 `employments.status` to `resigned` or `terminated`.
+- M14 invokes M2 `EmploymentService.transitionStatus()` to transition employment status to `resigned` or `terminated` based on `exit_reason`.
 - M14 sets M2 `employments.end_date` to `exit_date`.
 - M14 closes active M3 `assignments` associated with the `person_id`.
 
 ---
 
-## 6. Cross-Engine Integration Matrix
+## 6. M9 Finance Integration Boundary
 
-```text
-M13 Recruitment  ──(hired candidate)──>  M2 People (Person + Employment)
-                                             │
-                                             ▼
-                                  M14 Workforce Engine
-                                  ├── Onboarding Plans & Tasks
-                                  ├── M3 Assignment Setup (Mentors & Placements)
-                                  ├── M6 Check-in Meetings (meeting_id)
-                                  ├── M7 Learning Programs (learning_program_id)
-                                  ├── M8 Probation Reviews (evaluation_id)
-                                  ├── Transfers & Promotions (M2 Employment update)
-                                  └── Offboarding Clearances
-                                             │
-                                             ▼
-                                  M10 Audit & Outbox Engine
-                                             │
-                                             ▼
-                                  M11 Analytics Engine
-```
+- Offboarding clearance items (`workforce_offboarding_clearances`) for financial settlement optionally link to M9 `finance_obligations` via `financial_obligation_id`.
+- Service-level validation strictly verifies that `financial_obligations.organization_id = workforce_offboarding_clearances.organization_id`.
+- Clearance sign-off checks for zero outstanding balance before marking the financial clearance item `cleared`.
+- M14 contains **zero payroll** or account balance management logic.
 
 ---
 
@@ -194,10 +241,10 @@ M13 Recruitment  ──(hired candidate)──>  M2 People (Person + Employment)
 
 M14 capabilities are enforced via `requireCapability(capability)` in `src/permissions/permissions.middleware.ts`:
 
-- `workforce:view`: View onboarding plans, tasks, templates, transfers, offboardings.
+- `workforce:view`: View onboarding plans, tasks, templates, transfers, promotions, offboardings.
 - `workforce:create`: Submit transfer/promotion requests, create onboarding plans.
-- `workforce:manage`: Update onboarding task progress, verify items, initiate offboarding.
-- `workforce:admin`: Manage onboarding templates (`POST/PATCH /templates`).
+- `workforce:manage`: Update onboarding task progress, verify items, initiate offboarding, process clearances.
+- `workforce:admin`: Manage onboarding templates and template items (`POST/PATCH /templates`).
 - `workforce:approve`: Approve transfers, promotions, and finalize offboardings.
 
 Tenant scoping is enforced on all tables with `organization_id`. Cross-tenant queries return `404 Not Found`.
@@ -215,12 +262,17 @@ Tenant scoping is enforced on all tables with `organization_id`. Cross-tenant qu
 7. `workforce.onboarding_item.submitted`
 8. `workforce.onboarding_item.verified`
 9. `workforce.transfer.requested`
-10. `workforce.transfer.approved`
-11. `workforce.transfer.completed`
-12. `workforce.promotion.requested`
-13. `workforce.promotion.approved`
-14. `workforce.promotion.completed`
-15. `workforce.offboarding.initiated`
-16. `workforce.offboarding.clearance_updated`
-17. `workforce.offboarding.completed`
-18. `workforce.offboarding.cancelled`
+10. `workforce.transfer.submitted`
+11. `workforce.transfer.reviewed`
+12. `workforce.transfer.approved`
+13. `workforce.transfer.completed`
+14. `workforce.promotion.requested`
+15. `workforce.promotion.submitted`
+16. `workforce.promotion.reviewed`
+17. `workforce.promotion.approved`
+18. `workforce.promotion.completed`
+19. `workforce.offboarding.initiated`
+20. `workforce.offboarding.clearance_updated`
+21. `workforce.offboarding.completed`
+22. `workforce.offboarding.cancelled`
+

@@ -34,33 +34,46 @@
 
 | Method | Canonical Endpoint | Description | Required Capability |
 |---|---|---|---|
-| **TEMPLATES** | | | |
+| **TEMPLATES & TEMPLATE ITEMS** | | | |
 | `POST` | `/api/v1/organizations/:orgId/workforce/templates` | Create onboarding template | `workforce:admin` |
 | `GET` | `/api/v1/organizations/:orgId/workforce/templates` | List onboarding templates | `workforce:view` |
-| `GET` | `/api/v1/organizations/:orgId/workforce/templates/:id` | Get template details | `workforce:view` |
+| `GET` | `/api/v1/organizations/:orgId/workforce/templates/:id` | Get template details with tasks & items | `workforce:view` |
 | `PATCH`| `/api/v1/organizations/:orgId/workforce/templates/:id` | Update template attributes | `workforce:admin` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/templates/:id/items` | Define template requirement item | `workforce:admin` |
+| `PATCH`| `/api/v1/organizations/:orgId/workforce/templates/:id/items/:itemId` | Update template requirement item | `workforce:admin` |
+| `DELETE`| `/api/v1/organizations/:orgId/workforce/templates/:id/items/:itemId` | Delete template requirement item | `workforce:admin` |
 | **ONBOARDING PLANS** | | | |
-| `POST` | `/api/v1/organizations/:orgId/workforce/onboarding-plans` | Initiate onboarding plan | `workforce:create` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/onboarding-plans` | Create onboarding plan (draft or initiated) | `workforce:create` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/onboarding-plans/:id/initiate` | Transition plan from draft to initiated | `workforce:manage` |
 | `GET` | `/api/v1/organizations/:orgId/workforce/onboarding-plans` | List onboarding plans | `workforce:view` |
-| `GET` | `/api/v1/organizations/:orgId/workforce/onboarding-plans/:id` | Get plan details & task list | `workforce:view` |
+| `GET` | `/api/v1/organizations/:orgId/workforce/onboarding-plans/:id` | Get plan details & task/item list | `workforce:view` |
 | `POST` | `/api/v1/organizations/:orgId/workforce/onboarding-plans/:id/complete` | Mark plan completed | `workforce:manage` |
 | `POST` | `/api/v1/organizations/:orgId/workforce/onboarding-plans/:id/cancel` | Cancel onboarding plan | `workforce:manage` |
 | **TASKS & REQUIREMENTS** | | | |
-| `PATCH`| `/api/v1/organizations/:orgId/workforce/onboarding-tasks/:id` | Update task status / assignee | `workforce:manage` |
+| `PATCH`| `/api/v1/organizations/:orgId/workforce/onboarding-tasks/:id` | Update task status & notes | `workforce:manage` |
 | `POST` | `/api/v1/organizations/:orgId/workforce/onboarding-items/:id/submit` | Submit requirement metadata | `workforce:manage` |
 | `POST` | `/api/v1/organizations/:orgId/workforce/onboarding-items/:id/verify` | Verify requirement item | `workforce:manage` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/onboarding-items/:id/reject` | Reject submitted requirement item | `workforce:manage` |
 | **TRANSFERS** | | | |
-| `POST` | `/api/v1/organizations/:orgId/workforce/transfers` | Request organizational transfer | `workforce:create` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/transfers` | Create transfer request (draft or submitted) | `workforce:create` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/transfers/:id/submit` | Submit draft transfer request | `workforce:create` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/transfers/:id/review` | Move transfer to review / pending approval | `workforce:manage` |
 | `GET` | `/api/v1/organizations/:orgId/workforce/transfers` | List transfer workflows | `workforce:view` |
 | `GET` | `/api/v1/organizations/:orgId/workforce/transfers/:id` | Get transfer workflow details | `workforce:view` |
 | `POST` | `/api/v1/organizations/:orgId/workforce/transfers/:id/approve` | Approve transfer request | `workforce:approve` |
 | `POST` | `/api/v1/organizations/:orgId/workforce/transfers/:id/execute` | Execute transfer (updates M2 & M3) | `workforce:approve` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/transfers/:id/reject` | Reject transfer request | `workforce:approve` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/transfers/:id/cancel` | Cancel transfer request | `workforce:create` |
 | **PROMOTIONS** | | | |
-| `POST` | `/api/v1/organizations/:orgId/workforce/promotions` | Request promotion process | `workforce:create` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/promotions` | Create promotion process (draft or submitted) | `workforce:create` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/promotions/:id/submit` | Submit draft promotion request | `workforce:create` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/promotions/:id/review` | Move promotion to review / pending approval | `workforce:manage` |
 | `GET` | `/api/v1/organizations/:orgId/workforce/promotions` | List promotion workflows | `workforce:view` |
 | `GET` | `/api/v1/organizations/:orgId/workforce/promotions/:id` | Get promotion workflow details | `workforce:view` |
 | `POST` | `/api/v1/organizations/:orgId/workforce/promotions/:id/approve` | Approve promotion request | `workforce:approve` |
-| `POST` | `/api/v1/organizations/:orgId/workforce/promotions/:id/execute` | Execute promotion (updates M2) | `workforce:approve` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/promotions/:id/execute` | Execute promotion (updates M2 title & roles) | `workforce:approve` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/promotions/:id/reject` | Reject promotion request | `workforce:approve` |
+| `POST` | `/api/v1/organizations/:orgId/workforce/promotions/:id/cancel` | Cancel promotion process | `workforce:create` |
 | **OFFBOARDING** | | | |
 | `POST` | `/api/v1/organizations/:orgId/workforce/offboardings` | Initiate offboarding exit | `workforce:manage` |
 | `GET` | `/api/v1/organizations/:orgId/workforce/offboardings` | List offboardings | `workforce:view` |
@@ -77,13 +90,14 @@
 ### 2.1 Onboarding Plans
 
 #### `POST /api/v1/organizations/:orgId/workforce/onboarding-plans`
-Initiates an onboarding plan for an M2 `Employment`.
+Creates an onboarding plan for an M2 `Employment`.
 
 * **Request Body**:
 ```json
 {
   "employmentId": "6e4a2f55-3d45-7f7c-cb00-8ca5904371e5",
   "templateId": "7f5b3a66-4e56-8a8d-dc11-9db6015482f6",
+  "status": "initiated",
   "targetCompletionDate": "2026-10-31",
   "notes": "Standard engineering onboarding plan"
 }
@@ -99,6 +113,7 @@ Initiates an onboarding plan for an M2 `Employment`.
     "personId": "4c2e0d33-1b23-5d5a-af88-6a83782159c3",
     "templateId": "7f5b3a66-4e56-8a8d-dc11-9db6015482f6",
     "status": "initiated",
+    "initiatedAt": "2026-09-14T02:40:00Z",
     "targetCompletionDate": "2026-10-31",
     "createdAt": "2026-09-14T02:40:00Z"
   },
@@ -144,7 +159,7 @@ Finalizes employee exit process. Atomically updates M2 `employments.status` to `
 * **Request Body**:
 ```json
 {
-  "notes": "Exit interview completed, all equipment returned and access revoked."
+  "notes": "Exit interview completed, all equipment returned, M9 financial obligation cleared, access revoked."
 }
 ```
 
@@ -166,3 +181,4 @@ Finalizes employee exit process. Atomically updates M2 `employments.status` to `
   }
 }
 ```
+

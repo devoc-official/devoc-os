@@ -17,7 +17,7 @@ This index is the primary navigation point for engineering documentation.
 - [Milestone 11 — Analytics Engine](01_Implementation/Milestone-11-Analytics.md)
 - [Milestone 12 — Admin & Platform Management](01_Implementation/Milestone-12-Admin-Platform.md)
 - [Milestone 13 — Recruitment & Talent Acquisition Engine](01_Implementation/Milestone-13-Recruitment.md)
-- [Milestone 14 — Workforce Onboarding & Lifecycle Engine (Status: Architecture Draft)](01_Implementation/Milestone-14-Onboarding.md)
+- [Milestone 14 — Workforce Onboarding & Lifecycle Engine (Status: Architecture Draft — Revised)](01_Implementation/Milestone-14-Onboarding.md)
 
 ## Engineering Contracts & Security
 
