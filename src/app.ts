@@ -16,6 +16,7 @@ import { auditRouter } from './audit/audit.router.js';
 import { analyticsRouter } from './modules/analytics/api/analytics.router.js';
 import { platformRouter } from './modules/admin/api/platform.router.js';
 import { adminRouter } from './modules/admin/api/admin.router.js';
+import { recruitmentRouter } from './modules/recruitment/api/recruitment.router.js';
 import { registerProjectTaskTargetResolvers } from './modules/projects-tasks/infrastructure/target-resolver.js';
 import { registerLearningTargetResolvers } from './modules/learning/domain/learning-target.registry.js';
 import { healthRouter } from './api/health.router.js';
@@ -55,6 +56,7 @@ export const createApp = (): express.Application => {
   app.use('/api/v1', financeRouter);
   app.use('/api/v1', auditRouter);
   app.use('/api/v1', analyticsRouter);
+  app.use('/api/v1', recruitmentRouter);
 
   // 404 Fallback
   app.use((req, res) => {

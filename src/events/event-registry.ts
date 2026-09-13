@@ -78,6 +78,26 @@ export const CANONICAL_EVENT_CATALOG: Array<{
   { eventName: 'master_data.created', version: '1.0', sourceModule: 'admin', description: 'Master data entity created' },
   { eventName: 'master_data.retired', version: '1.0', sourceModule: 'admin', description: 'Master data entity deactivated or retired' },
   { eventName: 'feature_configuration.updated', version: '1.0', sourceModule: 'admin', description: 'Feature configuration toggle or parameter updated' },
+
+  // M13 Recruitment
+  { eventName: 'recruitment.position.created', version: '1.0', sourceModule: 'recruitment', description: 'Hiring position requisition created' },
+  { eventName: 'recruitment.position.opened', version: '1.0', sourceModule: 'recruitment', description: 'Position opened for recruitment' },
+  { eventName: 'recruitment.position.paused', version: '1.0', sourceModule: 'recruitment', description: 'Position hiring paused' },
+  { eventName: 'recruitment.position.closed', version: '1.0', sourceModule: 'recruitment', description: 'Position closed (hiring-terminal)' },
+  { eventName: 'recruitment.candidate.created', version: '1.0', sourceModule: 'recruitment', description: 'Candidate profile created' },
+  { eventName: 'recruitment.candidate.updated', version: '1.0', sourceModule: 'recruitment', description: 'Candidate profile updated' },
+  { eventName: 'recruitment.application.created', version: '1.0', sourceModule: 'recruitment', description: 'Candidate applied for position' },
+  { eventName: 'recruitment.application.stage_changed', version: '1.0', sourceModule: 'recruitment', description: 'Application advanced to new stage' },
+  { eventName: 'recruitment.application.rejected', version: '1.0', sourceModule: 'recruitment', description: 'Application rejected' },
+  { eventName: 'recruitment.application.withdrawn', version: '1.0', sourceModule: 'recruitment', description: 'Application withdrawn' },
+  { eventName: 'recruitment.trial.scheduled', version: '1.0', sourceModule: 'recruitment', description: 'Candidate trial scheduled' },
+  { eventName: 'recruitment.trial.started', version: '1.0', sourceModule: 'recruitment', description: 'Candidate trial activated' },
+  { eventName: 'recruitment.trial.completed', version: '1.0', sourceModule: 'recruitment', description: 'Candidate trial concluded' },
+  { eventName: 'recruitment.offer.issued', version: '1.0', sourceModule: 'recruitment', description: 'Employment offer issued' },
+  { eventName: 'recruitment.offer.accepted', version: '1.0', sourceModule: 'recruitment', description: 'Employment offer accepted' },
+  { eventName: 'recruitment.offer.rejected', version: '1.0', sourceModule: 'recruitment', description: 'Employment offer rejected' },
+  { eventName: 'recruitment.offer.rescinded', version: '1.0', sourceModule: 'recruitment', description: 'Employment offer rescinded' },
+  { eventName: 'recruitment.candidate.hired', version: '1.0', sourceModule: 'recruitment', description: 'Candidate converted to organizational person and hired' },
 ];
 
 export class EventRegistryService {
