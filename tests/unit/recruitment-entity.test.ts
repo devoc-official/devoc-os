@@ -104,6 +104,84 @@ describe('Milestone 13 — Recruitment Engine Domain Entity Unit Tests', () => {
 
       expect(() => pos.open()).toThrow(PositionClosedError);
     });
+
+    it('should allow recordHire only when status is open', () => {
+      const openPos = new PositionEntity({
+        id: uuidv4(),
+        organizationId: orgId,
+        title: 'Open Position',
+        code: 'REQ-OPEN-01',
+        employmentType: 'full_time',
+        openingsCount: 2,
+        hiredCount: 0,
+        currency: 'USD',
+        status: 'open',
+        createdAt: now,
+        updatedAt: now,
+      });
+      openPos.recordHire();
+      expect(openPos.hiredCount).toBe(1);
+
+      const pausedPos = new PositionEntity({
+        id: uuidv4(),
+        organizationId: orgId,
+        title: 'Paused Position',
+        code: 'REQ-PAUSED-01',
+        employmentType: 'full_time',
+        openingsCount: 2,
+        hiredCount: 0,
+        currency: 'USD',
+        status: 'paused',
+        createdAt: now,
+        updatedAt: now,
+      });
+      expect(() => pausedPos.recordHire()).toThrow(InvalidStateTransitionError);
+
+      const draftPos = new PositionEntity({
+        id: uuidv4(),
+        organizationId: orgId,
+        title: 'Draft Position',
+        code: 'REQ-DRAFT-01',
+        employmentType: 'full_time',
+        openingsCount: 2,
+        hiredCount: 0,
+        currency: 'USD',
+        status: 'draft',
+        createdAt: now,
+        updatedAt: now,
+      });
+      expect(() => draftPos.recordHire()).toThrow(InvalidStateTransitionError);
+
+      const closedPos = new PositionEntity({
+        id: uuidv4(),
+        organizationId: orgId,
+        title: 'Closed Position',
+        code: 'REQ-CLOSED-02',
+        employmentType: 'full_time',
+        openingsCount: 1,
+        hiredCount: 1,
+        currency: 'USD',
+        status: 'closed',
+        createdAt: now,
+        updatedAt: now,
+      });
+      expect(() => closedPos.recordHire()).toThrow(PositionClosedError);
+
+      const archivedPos = new PositionEntity({
+        id: uuidv4(),
+        organizationId: orgId,
+        title: 'Archived Position',
+        code: 'REQ-ARCHIVED-01',
+        employmentType: 'full_time',
+        openingsCount: 2,
+        hiredCount: 0,
+        currency: 'USD',
+        status: 'archived',
+        createdAt: now,
+        updatedAt: now,
+      });
+      expect(() => archivedPos.recordHire()).toThrow(InvalidStateTransitionError);
+    });
   });
 
   describe('CandidateEntity', () => {

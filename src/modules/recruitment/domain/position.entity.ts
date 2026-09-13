@@ -168,11 +168,11 @@ export class PositionEntity {
   }
 
   public recordHire(): void {
-    if (this.status === 'closed') {
-      throw new PositionClosedError('Cannot hire into a closed position');
-    }
-    if (this.status === 'archived') {
-      throw new InvalidStateTransitionError('Cannot hire into an archived position');
+    if (this.status !== 'open') {
+      if (this.status === 'closed') {
+        throw new PositionClosedError('Cannot hire into a closed position');
+      }
+      throw new InvalidStateTransitionError(`Cannot hire into a position with status '${this.status}'`);
     }
     if (this.hiredCount >= this.openingsCount) {
       throw new ValidationError('Position has no remaining available openings');

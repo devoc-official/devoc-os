@@ -318,29 +318,47 @@ export class ApplicationService {
       }
     }
 
-    const history = await ApplicationRepository.recordStageHistory(
-      input.organizationId,
-      input.applicationId,
-      input.stageId,
-      input.status,
-      input.evaluatorId,
-      input.evaluationId,
-      input.meetingId,
-      input.notes
-    );
+    const txResult = await withTransaction(async (tx) => {
+      const history = await ApplicationRepository.recordStageHistory(
+        input.organizationId,
+        input.applicationId,
+        input.stageId,
+        input.status,
+        input.evaluatorId,
+        input.evaluationId,
+        input.meetingId,
+        input.notes,
+        tx
+      );
 
-    await AuditService.recordLog({
-      organizationId: input.organizationId,
-      actorId: input.actorId,
-      action: 'recruitment.application.stage_evaluated',
-      entityType: 'ApplicationStage',
-      entityId: history.id,
-      payload: { applicationId: input.applicationId, stageId: input.stageId, status: input.status },
-      requestId: input.requestId,
-      sourceModule: 'recruitment',
+      await AuditService.recordLog({
+        organizationId: input.organizationId,
+        actorId: input.actorId,
+        action: 'recruitment.application.stage_changed',
+        entityType: 'ApplicationStage',
+        entityId: history.id,
+        afterState: { applicationId: input.applicationId, stageId: input.stageId, status: input.status },
+        requestId: input.requestId,
+        sourceModule: 'recruitment',
+        dbClient: tx,
+      });
+
+      const outbox = await OutboxService.stageOutboxEvent({
+        organizationId: input.organizationId,
+        eventName: 'recruitment.application.stage_changed',
+        entityType: 'ApplicationStage',
+        entityId: history.id,
+        payload: { applicationId: input.applicationId, stageId: input.stageId, status: input.status },
+        actorId: input.actorId,
+        requestId: input.requestId,
+        dbClient: tx,
+      });
+
+      return { history, outbox };
     });
 
-    return history;
+    await OutboxService.dispatchImmediate(txResult.outbox);
+    return txResult.history;
   }
 
   public static async scheduleInterview(
@@ -357,28 +375,46 @@ export class ApplicationService {
     await RecruitmentTenantValidator.validatePipelineStage(organizationId, stageId);
     await RecruitmentTenantValidator.validatePerson(organizationId, evaluatorId, 'Evaluator');
 
-    const history = await ApplicationRepository.recordStageHistory(
-      organizationId,
-      applicationId,
-      stageId,
-      'scheduled',
-      evaluatorId,
-      null,
-      meetingId,
-      notes
-    );
+    const txResult = await withTransaction(async (tx) => {
+      const history = await ApplicationRepository.recordStageHistory(
+        organizationId,
+        applicationId,
+        stageId,
+        'scheduled',
+        evaluatorId,
+        null,
+        meetingId,
+        notes,
+        tx
+      );
 
-    await AuditService.recordLog({
-      organizationId,
-      actorId,
-      action: 'recruitment.application.interview_scheduled',
-      entityType: 'ApplicationStage',
-      entityId: history.id,
-      payload: { applicationId, stageId, meetingId },
-      requestId,
-      sourceModule: 'recruitment',
+      await AuditService.recordLog({
+        organizationId,
+        actorId,
+        action: 'recruitment.application.stage_changed',
+        entityType: 'ApplicationStage',
+        entityId: history.id,
+        afterState: { applicationId, stageId, meetingId },
+        requestId,
+        sourceModule: 'recruitment',
+        dbClient: tx,
+      });
+
+      const outbox = await OutboxService.stageOutboxEvent({
+        organizationId,
+        eventName: 'recruitment.application.stage_changed',
+        entityType: 'ApplicationStage',
+        entityId: history.id,
+        payload: { applicationId, stageId, meetingId },
+        actorId,
+        requestId,
+        dbClient: tx,
+      });
+
+      return { history, outbox };
     });
 
-    return history;
+    await OutboxService.dispatchImmediate(txResult.outbox);
+    return txResult.history;
   }
 }

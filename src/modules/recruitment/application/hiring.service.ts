@@ -47,8 +47,11 @@ export class HiringService {
       if (!position) {
         throw new NotFoundError(`Position '${initialApp.positionId}' not found in organization`);
       }
-      if (position.status === 'closed') {
-        throw new PositionClosedError('Position is closed and cannot accept new hires');
+      if (position.status !== 'open') {
+        if (position.status === 'closed') {
+          throw new PositionClosedError('Position is closed and cannot accept new hires');
+        }
+        throw new ValidationError(`Cannot hire against position in status '${position.status}', position must be open`);
       }
       if (position.hiredCount >= position.openingsCount) {
         throw new PositionFullError('Position has no remaining available openings');

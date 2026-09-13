@@ -339,4 +339,84 @@ describe('Milestone 13 — Recruitment Engine REST API Integration Tests', () =>
       .set('Authorization', `Bearer ${token}`);
     expect(reopenRes.status).toBe(400);
   });
+
+  it('14. Capability Authorization — org_member is forbidden from recruitment:admin and recruitment:decide endpoints', async () => {
+    const db = (await import('../../src/database/index.js')).getDbClient();
+    const userMember = await AuthService.createUser({
+      email: 'member.user@devoc.internal',
+      password: 'Password123!',
+      fullName: 'Member User',
+    });
+    await db.query(
+      `INSERT INTO organization_memberships (organization_id, user_id, role, status)
+       VALUES ($1, $2, 'org_member', 'active');`,
+      [org.id, userMember.id]
+    );
+
+    const memberLogin = await AuthService.login('member.user@devoc.internal', 'Password123!');
+    const memberToken = memberLogin.accessToken;
+
+    // 1. POST /stages requires recruitment:admin (org_admin only)
+    const stageRes = await request(app)
+      .post(`/api/v1/organizations/${org.id}/recruitment/stages`)
+      .set('Authorization', `Bearer ${memberToken}`)
+      .set('x-organization-id', org.id)
+      .send({ stageName: 'Custom Member Stage', stageCode: 'member_stage', stageType: 'assessment', displayOrder: 99 });
+
+    expect(stageRes.status).toBe(403);
+    expect(stageRes.body.error.message).toContain('recruitment:admin');
+
+    // 2. POST /applications/:id/hire requires recruitment:decide (org_admin only)
+    const hireRes = await request(app)
+      .post(`/api/v1/organizations/${org.id}/recruitment/applications/${applicationId}/hire`)
+      .set('Authorization', `Bearer ${memberToken}`)
+      .set('x-organization-id', org.id);
+
+    expect(hireRes.status).toBe(403);
+    expect(hireRes.body.error.message).toContain('recruitment:decide');
+  });
+
+  it('15. Paused/Draft Position Hiring Protection — reject hiring against non-open position', async () => {
+    // 1. Create and open position
+    const posRes = await request(app)
+      .post(`/api/v1/organizations/${org.id}/recruitment/positions`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Paused Position Test', code: 'REQ-PAUSE-01', employmentType: 'full_time', openingsCount: 1 });
+    const testPosId = posRes.body.data.id;
+
+    await request(app).post(`/api/v1/organizations/${org.id}/recruitment/positions/${testPosId}/open`).set('Authorization', `Bearer ${token}`);
+
+    // 2. Register candidate, apply, offer, accept while open
+    const candRes = await request(app)
+      .post(`/api/v1/organizations/${org.id}/recruitment/candidates`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ firstName: 'Paused', lastName: 'Candidate', email: 'paused.candidate@external.org' });
+    const pCandId = candRes.body.data.id;
+
+    const appRes = await request(app)
+      .post(`/api/v1/organizations/${org.id}/recruitment/applications`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ candidateId: pCandId, positionId: testPosId });
+    const pAppId = appRes.body.data.id;
+
+    const offerRes = await request(app)
+      .post(`/api/v1/organizations/${org.id}/recruitment/applications/${pAppId}/offer`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ baseSalary: 110000, proposedStartDate: '2026-11-01' });
+    const pOfferId = offerRes.body.data.id;
+
+    await request(app)
+      .post(`/api/v1/organizations/${org.id}/recruitment/offers/${pOfferId}/accept`)
+      .set('Authorization', `Bearer ${token}`);
+
+    // 3. Pause position
+    await request(app).post(`/api/v1/organizations/${org.id}/recruitment/positions/${testPosId}/pause`).set('Authorization', `Bearer ${token}`);
+
+    // 4. Attempt hire against paused position -> must be rejected with 400
+    const hirePausedRes = await request(app)
+      .post(`/api/v1/organizations/${org.id}/recruitment/applications/${pAppId}/hire`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(hirePausedRes.status).toBe(400);
+  });
 });
