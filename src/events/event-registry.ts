@@ -65,6 +65,19 @@ export const CANONICAL_EVENT_CATALOG: Array<{
   { eventName: 'financial_adjustment.created', version: '1.0', sourceModule: 'finance', description: 'Financial adjustment added' },
   { eventName: 'budget.created', version: '1.0', sourceModule: 'finance', description: 'Operational budget created' },
   { eventName: 'budget.updated', version: '1.0', sourceModule: 'finance', description: 'Operational budget updated' },
+
+  // M12 Admin & Platform Management
+  { eventName: 'organization.provisioned', version: '1.0', sourceModule: 'admin', description: 'Tenant organization provisioned by platform admin' },
+  { eventName: 'organization.suspended', version: '1.0', sourceModule: 'admin', description: 'Tenant organization suspended' },
+  { eventName: 'organization.reactivated', version: '1.0', sourceModule: 'admin', description: 'Tenant organization reactivated' },
+  { eventName: 'organization.settings_updated', version: '1.0', sourceModule: 'admin', description: 'Organization operational settings updated' },
+  { eventName: 'person.user_linked', version: '1.0', sourceModule: 'admin', description: 'Person linked to user account' },
+  { eventName: 'person.user_unlinked', version: '1.0', sourceModule: 'admin', description: 'Person unlinked from user account' },
+  { eventName: 'role.context_assigned', version: '1.0', sourceModule: 'admin', description: 'Contextual role assigned to person' },
+  { eventName: 'membership.suspended', version: '1.0', sourceModule: 'admin', description: 'Organization member access suspended' },
+  { eventName: 'master_data.created', version: '1.0', sourceModule: 'admin', description: 'Master data entity created' },
+  { eventName: 'master_data.retired', version: '1.0', sourceModule: 'admin', description: 'Master data entity deactivated or retired' },
+  { eventName: 'feature_configuration.updated', version: '1.0', sourceModule: 'admin', description: 'Feature configuration toggle or parameter updated' },
 ];
 
 export class EventRegistryService {
