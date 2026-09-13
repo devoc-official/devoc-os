@@ -13,6 +13,7 @@ import { learningRouter } from './modules/learning/api/learning.router.js';
 import { evaluationRouter } from './modules/evaluation/api/evaluation.router.js';
 import { financeRouter } from './modules/finance/api/finance.router.js';
 import { auditRouter } from './audit/audit.router.js';
+import { analyticsRouter } from './modules/analytics/api/analytics.router.js';
 import { registerProjectTaskTargetResolvers } from './modules/projects-tasks/infrastructure/target-resolver.js';
 import { registerLearningTargetResolvers } from './modules/learning/domain/learning-target.registry.js';
 import { healthRouter } from './api/health.router.js';
@@ -49,6 +50,7 @@ export const createApp = (): express.Application => {
   app.use('/api/v1', evaluationRouter);
   app.use('/api/v1', financeRouter);
   app.use('/api/v1', auditRouter);
+  app.use('/api/v1', analyticsRouter);
 
   // 404 Fallback
   app.use((req, res) => {

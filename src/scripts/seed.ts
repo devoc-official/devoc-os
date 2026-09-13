@@ -660,13 +660,95 @@ export const seedDevelopmentData = async (): Promise<void> => {
   const { EventRegistryService } = await import('../events/event-registry.js');
   await EventRegistryService.seedEventRegistry();
 
+  // --- Seed M11 Analytics Engine ---
+  const { MetricDefinitionService } = await import('../modules/analytics/application/metric-definition.service.js');
+  const { AnalyticsComputationService } = await import('../modules/analytics/application/computation.service.js');
+  const { SavedReportService } = await import('../modules/analytics/application/saved-report.service.js');
+
+  const metricService = new MetricDefinitionService();
+  const computationService = new AnalyticsComputationService();
+  const reportService = new SavedReportService();
+
+  const placementMetric = await metricService.createMetricDefinition(
+    organization.id,
+    {
+      name: 'Student Placement Rate',
+      code: 'KPI_PLACEMENT_RATE',
+      domainModule: 'learning',
+      metricType: 'PERCENTAGE',
+      calculationSpec: {
+        numerator: {
+          sourceEntity: 'LEARNING_ENROLLMENT',
+          filter: { status: 'completed' },
+        },
+        denominator: {
+          sourceEntity: 'LEARNING_ENROLLMENT',
+          filter: { status: 'completed' },
+        },
+      },
+      supportedDimensions: ['organization_id', 'learning_program_id', 'time_period'],
+    },
+    adminUser.id
+  );
+
+  const revenueMetric = await metricService.createMetricDefinition(
+    organization.id,
+    {
+      name: 'Total Revenue',
+      code: 'KPI_REVENUE',
+      domainModule: 'finance',
+      metricType: 'SUM',
+      calculationSpec: {
+        sourceEntity: 'FINANCIAL_TRANSACTION',
+        field: 'amount',
+        filter: { direction: 'inflow', state: 'Posted' },
+      },
+      supportedDimensions: ['organization_id', 'category_id', 'time_period'],
+    },
+    adminUser.id
+  );
+
+  // Pre-calculate and persist sample snapshot
+  await computationService.computeMetric(
+    organization.id,
+    revenueMetric.id,
+    {
+      periodType: 'month',
+      startDate: '2026-01-01T00:00:00Z',
+      endDate: '2026-12-31T23:59:59Z',
+      persistSnapshot: true,
+    }
+  );
+
+  // Create sample saved report
+  await reportService.createReport(
+    organization.id,
+    {
+      name: 'Executive KPI Dashboard',
+      description: 'Monthly executive overview tracking student placement and recognized revenue.',
+      metricIds: [placementMetric.id, revenueMetric.id],
+      dimensions: ['learning_program_id', 'time_period'],
+      timeWindow: {
+        periodType: 'month',
+        startDate: '2026-01-01T00:00:00Z',
+        endDate: '2026-12-31T23:59:59Z',
+      },
+      isPublic: true,
+    },
+    adminUser.id
+  );
+
   logger.info(`Created Sample Work Record: ${sampleWork.title} (${sampleWork.id})`);
   logger.info(`Created Sample Meeting: ${sampleMeeting.title} (${sampleMeeting.id})`);
   logger.info(`Created Sample Learning Program: ${fsseProgram.name} (${fsseProgram.id})`);
   logger.info('Created M8 Evaluation Templates (Founder, Employee, Internship, Mentor, Developer).');
   logger.info('Created M9 Finance Categories, Parties, Obligations, Transactions, Allocations, & Budgets.');
   logger.info('Created M10 Event Registry Catalog.');
-  logger.info('Created Employments, Reporting hierarchy, Sample Assignment, M5 Work, M6 Meetings, M7 Learning, M8 Evaluation, M9 Finance & M10 Audit/Events Data.');
+  logger.info('Created M11 Analytics Metrics (Placement Rate, Revenue), Sample Snapshot, & Saved Report.');
+  logger.info('Created Employments, Reporting hierarchy, Sample Assignment, M5 Work, M6 Meetings, M7 Learning, M8 Evaluation, M9 Finance, M10 Audit/Events & M11 Analytics Data.');
+  // Allow any in-flight event handlers to flush
+  await new Promise((r) => setTimeout(r, 200));
+
   logger.info('✅ Seeding complete!');
 };
 
