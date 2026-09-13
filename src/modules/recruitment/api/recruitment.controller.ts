@@ -9,6 +9,8 @@ import { HiringService } from '../application/hiring.service.js';
 import { PipelineStageRepository } from '../infrastructure/pipeline-stage.repository.js';
 import { PipelineStageEntity } from '../domain/pipeline-stage.entity.js';
 import { NotFoundError } from '../../../shared/errors/index.js';
+import { withTransaction } from '../../../database/index.js';
+import { AuditService } from '../../../audit/audit.service.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class RecruitmentController {
@@ -199,7 +201,21 @@ export class RecruitmentController {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      const saved = await PipelineStageRepository.create(stage);
+      const saved = await withTransaction(async (tx) => {
+        const resStage = await PipelineStageRepository.create(stage, tx);
+        await AuditService.recordLog({
+          organizationId: orgId,
+          actorId: req.user?.id,
+          action: 'recruitment.stage.created',
+          entityType: 'PipelineStage',
+          entityId: resStage.id,
+          afterState: { id: resStage.id, name: resStage.name, code: resStage.stageCode },
+          requestId: req.requestId,
+          sourceModule: 'recruitment',
+          dbClient: tx,
+        });
+        return resStage;
+      });
       sendSuccess(res, saved, 201, { requestId: req.requestId });
     } catch (err) {
       sendError(res, err as Error, req.requestId);
@@ -220,7 +236,21 @@ export class RecruitmentController {
       if (req.body.isActive !== undefined) stage.isActive = req.body.isActive;
       stage.updatedAt = new Date();
 
-      const saved = await PipelineStageRepository.update(stage);
+      const saved = await withTransaction(async (tx) => {
+        const resStage = await PipelineStageRepository.update(stage, tx);
+        await AuditService.recordLog({
+          organizationId: orgId,
+          actorId: req.user?.id,
+          action: 'recruitment.stage.updated',
+          entityType: 'PipelineStage',
+          entityId: resStage.id,
+          afterState: { id: resStage.id, name: resStage.name, isActive: resStage.isActive },
+          requestId: req.requestId,
+          sourceModule: 'recruitment',
+          dbClient: tx,
+        });
+        return resStage;
+      });
       sendSuccess(res, saved, 200, { requestId: req.requestId });
     } catch (err) {
       sendError(res, err as Error, req.requestId);
