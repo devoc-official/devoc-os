@@ -17,7 +17,8 @@ This index is the primary navigation point for engineering documentation.
 - [Milestone 11 — Analytics Engine](01_Implementation/Milestone-11-Analytics.md)
 - [Milestone 12 — Admin & Platform Management](01_Implementation/Milestone-12-Admin-Platform.md)
 - [Milestone 13 — Recruitment & Talent Acquisition Engine](01_Implementation/Milestone-13-Recruitment.md)
-- [Milestone 14 — Workforce Onboarding & Lifecycle Engine (Status: Architecture Draft — Revised)](01_Implementation/Milestone-14-Onboarding.md)
+- [Milestone 14 — Workforce Onboarding & Lifecycle Engine](01_Implementation/Milestone-14-Onboarding.md)
+- [Milestone 15 — Attendance, Leave & Workforce Time Engine (Status: Architecture Frozen)](01_Implementation/Milestone-15-Workforce-Time.md)
 
 ## Engineering Contracts & Security
 
@@ -35,6 +36,7 @@ This index is the primary navigation point for engineering documentation.
 - [Database Architecture & Schema M12](03_Database/Schema-M12.md)
 - [Database Architecture & Schema M13](03_Database/Schema-M13.md)
 - [Database Architecture & Schema M14](03_Database/Schema-M14.md)
+- [Database Architecture & Schema M15](03_Database/Schema-M15.md)
 - [REST API Architecture & Contracts M1](04_API/API-Contracts-M1.md)
 - [REST API Architecture & Contracts M2](04_API/API-Contracts-M2.md)
 - [REST API Architecture & Contracts M3](04_API/API-Contracts-M3.md)
@@ -49,6 +51,7 @@ This index is the primary navigation point for engineering documentation.
 - [REST API Architecture & Contracts M12](04_API/API-Contracts-M12.md)
 - [REST API Architecture & Contracts M13](04_API/API-Contracts-M13.md)
 - [REST API Architecture & Contracts M14](04_API/API-Contracts-M14.md)
+- [REST API Architecture & Contracts M15](04_API/API-Contracts-M15.md)
 - [Authentication, Tenant Resolution & Security](05_Security/Auth-And-Tenancy.md)
 
 ## AI Development & Workflow
@@ -72,6 +75,7 @@ This index is the primary navigation point for engineering documentation.
 - [Admin & Platform Management Domain — M12](02_Domain/Admin-Platform-M12.md)
 - [Recruitment Domain — M13](02_Domain/Recruitment-M13.md)
 - [Workforce Onboarding & Lifecycle Domain — M14](02_Domain/Onboarding-M14.md)
+- [Attendance, Leave & Workforce Time Domain — M15](02_Domain/Workforce-Time-M15.md)
 
 ## Architecture Decisions (ADRs)
 
@@ -93,6 +97,7 @@ This index is the primary navigation point for engineering documentation.
 - [ADR-016 — Admin & Platform Management](10_ADR/ADR-016-Admin-Platform-Management.md)
 - [ADR-017 — Recruitment & Talent Acquisition Engine](10_ADR/ADR-017-Recruitment-Talent-Acquisition-Engine.md)
 - [ADR-018 — Workforce Onboarding & Lifecycle Engine](10_ADR/ADR-018-Onboarding-Workforce-Lifecycle.md)
+- [ADR-019 — Attendance, Leave & Workforce Time Engine](10_ADR/ADR-019-Workforce-Time-Engine.md)
 
 ## Documentation Ownership
 
