@@ -758,8 +758,11 @@ if (process.argv[1] && (process.argv[1].endsWith('seed.ts') || process.argv[1].e
       await seedDevelopmentData();
     } catch (e) {
       logger.error('Seeding failed:', { error: (e as Error).message });
+      await closeDb().catch(() => {});
+      process.exit(1);
     } finally {
       await closeDb();
+      process.exit(0);
     }
   })();
 }

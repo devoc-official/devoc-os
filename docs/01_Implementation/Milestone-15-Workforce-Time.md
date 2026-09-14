@@ -2,7 +2,7 @@
 
 ## Status
 
-**Architecture Frozen — Awaiting Implementation Authorization**
+**Implemented & Validated — Full Test Suite Verified**
 
 ---
 
@@ -196,15 +196,15 @@ The M15 implementation must proceed in strict dependency order:
 
 ## 7. Acceptance Criteria (Definition of Done)
 
-* [ ] Full database migration script `migrations/015_workforce_time_m15_schema.sql` cleanly applies, rolls back, and seeds without errors.
-* [ ] Work schedules support both fixed day/time rules and flexible weekly hours with collision-free employment assignments.
-* [ ] Attendance accurately models multiple sessions per day, records append-only corrections, and reflects approved leave and holidays.
-* [ ] Breaks are tracked canonically as explicit time records with `time_type = 'break'`, and regular work time intervals do not overlap.
-* [ ] Overtime is calculated and tracked strictly as operational workforce time without introducing any payroll, compensation, or wage logic.
-* [ ] Timesheets enforce explicit lifecycle states (`draft` $\rightarrow$ `submitted` $\rightarrow$ `approved`) and become strictly immutable once approved.
-* [ ] Leave balances enforce proper reservation on submission and commit on approval, releasing on rejection/cancellation.
-* [ ] M15 provides read-only availability signals to M3 without modifying assignments or project teams.
-* [ ] M15 registers operational sources in M11 Analytics Registry without implementing custom dashboards or parallel analytics engines.
-* [ ] All endpoints use standard API envelopes (`data`/`meta`), enforce `requireCapability()`, and return `404` on cross-tenant requests.
-* [ ] All mutations use M10 transactional outbox semantics with zero pre-commit event emissions.
-* [ ] Typecheck, build, migration reset, seed, and complete regression tests pass with 100% success.
+* [x] Full database migration script `migrations/015_workforce_time_m15_schema.sql` cleanly applies, rolls back, and seeds without errors.
+* [x] Work schedules support both fixed day/time rules and flexible weekly hours with collision-free employment assignments.
+* [x] Attendance accurately models multiple sessions per day, records append-only corrections, and reflects approved leave and holidays.
+* [x] Breaks are tracked canonically as explicit time records with `time_type = 'break'`, and regular work time intervals do not overlap.
+* [x] Overtime is calculated and tracked strictly as operational workforce time without introducing any payroll, compensation, or wage logic.
+* [x] Timesheets enforce explicit lifecycle states (`draft` $\rightarrow$ `submitted` $\rightarrow$ `approved`) and become strictly immutable once approved.
+* [x] Leave balances enforce proper reservation on submission and commit on approval, releasing on rejection/cancellation.
+* [x] M15 provides read-only availability signals to M3 without modifying assignments or project teams.
+* [x] M15 registers operational sources in M11 Analytics Registry without implementing custom dashboards or parallel analytics engines.
+* [x] All endpoints use standard API envelopes (`data`/`meta`), enforce `requireCapability()`, and return `404` on cross-tenant requests.
+* [x] All mutations use M10 transactional outbox semantics with zero pre-commit event emissions.
+* [x] Typecheck, build, migration reset, seed, and complete regression tests pass with 100% success.

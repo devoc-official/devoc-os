@@ -50,6 +50,11 @@ export type Capability =
   | 'workforce:manage'
   | 'workforce:admin'
   | 'workforce:approve'
+  | 'workforce_time:view'
+  | 'workforce_time:create'
+  | 'workforce_time:manage'
+  | 'workforce_time:approve'
+  | 'workforce_time:admin'
   | 'analytics:view'
   | 'analytics:define';
 
@@ -67,6 +72,11 @@ export const ROLE_CAPABILITY_MAP: Record<'org_admin' | 'org_member', Capability[
     'workforce:manage',
     'workforce:admin',
     'workforce:approve',
+    'workforce_time:view',
+    'workforce_time:create',
+    'workforce_time:manage',
+    'workforce_time:approve',
+    'workforce_time:admin',
     'analytics:view',
     'analytics:define',
   ],
@@ -79,6 +89,9 @@ export const ROLE_CAPABILITY_MAP: Record<'org_admin' | 'org_member', Capability[
     'workforce:view',
     'workforce:create',
     'workforce:manage',
+    'workforce_time:view',
+    'workforce_time:create',
+    'workforce_time:manage',
     'analytics:view',
   ],
 };

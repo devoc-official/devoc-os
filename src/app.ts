@@ -18,6 +18,7 @@ import { platformRouter } from './modules/admin/api/platform.router.js';
 import { adminRouter } from './modules/admin/api/admin.router.js';
 import { recruitmentRouter } from './modules/recruitment/api/recruitment.router.js';
 import { workforceRouter } from './modules/workforce/api/workforce.router.js';
+import { workforceTimeRouter } from './modules/workforce-time/api/workforce-time.router.js';
 import './modules/workforce/application/consumer/workforce.event.consumer.js';
 import { registerProjectTaskTargetResolvers } from './modules/projects-tasks/infrastructure/target-resolver.js';
 import { registerLearningTargetResolvers } from './modules/learning/domain/learning-target.registry.js';
@@ -60,6 +61,7 @@ export const createApp = (): express.Application => {
   app.use('/api/v1', analyticsRouter);
   app.use('/api/v1', recruitmentRouter);
   app.use('/api/v1', workforceRouter);
+  app.use('/api/v1', workforceTimeRouter);
 
   // 404 Fallback
   app.use((req, res) => {

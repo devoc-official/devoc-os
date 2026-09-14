@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { getDbClient } from './index.js';
+import { getDbClient, closeDb } from './index.js';
 import { logger } from '../shared/logging/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -57,6 +57,22 @@ export const resetDatabase = async (): Promise<void> => {
   const db = getDbClient();
   logger.info('Resetting database schema...');
   await db.exec(`
+    DROP TABLE IF EXISTS leave_request_history CASCADE;
+    DROP TABLE IF EXISTS leave_requests CASCADE;
+    DROP TABLE IF EXISTS leave_balances CASCADE;
+    DROP TABLE IF EXISTS leave_policy_rules CASCADE;
+    DROP TABLE IF EXISTS leave_policies CASCADE;
+    DROP TABLE IF EXISTS leave_types CASCADE;
+    DROP TABLE IF EXISTS workforce_timesheet_entries CASCADE;
+    DROP TABLE IF EXISTS workforce_timesheets CASCADE;
+    DROP TABLE IF EXISTS workforce_time_records CASCADE;
+    DROP TABLE IF EXISTS attendance_corrections CASCADE;
+    DROP TABLE IF EXISTS attendance_sessions CASCADE;
+    DROP TABLE IF EXISTS attendance_records CASCADE;
+    DROP TABLE IF EXISTS workforce_holidays CASCADE;
+    DROP TABLE IF EXISTS workforce_schedule_assignments CASCADE;
+    DROP TABLE IF EXISTS workforce_schedule_days CASCADE;
+    DROP TABLE IF EXISTS workforce_schedules CASCADE;
     DROP TABLE IF EXISTS workforce_offboarding_clearances CASCADE;
     DROP TABLE IF EXISTS workforce_offboardings CASCADE;
     DROP TABLE IF EXISTS workforce_promotions CASCADE;
@@ -161,8 +177,11 @@ if (process.argv[1] && (process.argv[1].endsWith('migrate.ts') || process.argv[1
         await runMigrations();
       }
       logger.info('Migration task complete.');
+      await closeDb();
+      process.exit(0);
     } catch (e) {
       logger.error('Migration failed:', { error: (e as Error).message });
+      await closeDb().catch(() => {});
       process.exit(1);
     }
   })();
