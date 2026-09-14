@@ -1,19 +1,5 @@
-# Database Architecture & Schema — M14 Workforce Onboarding & Lifecycle Engine
+-- Migration 014: Workforce Onboarding & Lifecycle Engine (M14) Schema
 
-## 1. Relational Database Principles
-
-* **Database Engine**: PostgreSQL 15+.
-* **Primary Identifiers**: UUID v4 (`gen_random_uuid()`).
-* **Tenant Isolation**: Every table contains `organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE`.
-* **Tenant Composite Indexing**: Core tables feature `(organization_id, id)` composite indexes to enforce service-level tenant boundary validation.
-* **Audit Compliance**: Mutation timestamping (`created_at`, `updated_at`). Soft deletion is avoided unless explicitly required; status machines control entity lifecycles.
-* **Zero Entity Duplication**: No duplicate tables for candidates, people, employments, roles, assignments, projects, tasks, or financial obligations.
-
----
-
-## 2. Table Definitions
-
-```sql
 -- 1. Onboarding Master Templates
 CREATE TABLE IF NOT EXISTS workforce_onboarding_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -35,7 +21,7 @@ CREATE TABLE IF NOT EXISTS workforce_onboarding_template_tasks (
     template_id UUID NOT NULL REFERENCES workforce_onboarding_templates(id) ON DELETE CASCADE,
     title VARCHAR(200) NOT NULL,
     description TEXT NULL,
-    assigned_role_context VARCHAR(100) NULL, -- Template role context (e.g. 'manager', 'hr_bp', 'buddy')
+    assigned_role_context VARCHAR(100) NULL,
     due_offset_days INT NOT NULL DEFAULT 7,
     is_mandatory BOOLEAN NOT NULL DEFAULT TRUE,
     display_order INT NOT NULL DEFAULT 0,
@@ -76,7 +62,6 @@ CREATE TABLE IF NOT EXISTS workforce_onboarding_plans (
 );
 
 -- 5. Onboarding Tasks (Concrete instances)
--- Note: Task person responsibility is authoritatively maintained in M3 assignments (target_type = 'task').
 CREATE TABLE IF NOT EXISTS workforce_onboarding_tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -84,7 +69,7 @@ CREATE TABLE IF NOT EXISTS workforce_onboarding_tasks (
     template_task_id UUID NULL REFERENCES workforce_onboarding_template_tasks(id) ON DELETE SET NULL,
     title VARCHAR(200) NOT NULL,
     description TEXT NULL,
-    assigned_role_context VARCHAR(100) NULL, -- Non-authoritative snapshot context from template
+    assigned_role_context VARCHAR(100) NULL,
     status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'skipped', 'failed')),
     is_mandatory BOOLEAN NOT NULL DEFAULT TRUE,
     display_order INT NOT NULL DEFAULT 0,
@@ -97,7 +82,7 @@ CREATE TABLE IF NOT EXISTS workforce_onboarding_tasks (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 6. Onboarding Requirements / Items (Concrete instances instantiated from template items)
+-- 6. Onboarding Requirements / Items (Concrete instances)
 CREATE TABLE IF NOT EXISTS workforce_onboarding_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -107,7 +92,7 @@ CREATE TABLE IF NOT EXISTS workforce_onboarding_items (
     item_type VARCHAR(50) NOT NULL CHECK (item_type IN ('document_reference', 'policy_acknowledgement', 'equipment_receipt', 'access_confirmation', 'compliance_verification', 'other')),
     title VARCHAR(200) NOT NULL,
     status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'submitted', 'verified', 'rejected', 'skipped')),
-    item_metadata JSONB NOT NULL DEFAULT '{}'::jsonb, -- Stores URLs, verification reference numbers, receipt IDs (NO binary contents)
+    item_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
     verified_by_person_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
     verified_at TIMESTAMPTZ NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -141,7 +126,6 @@ CREATE TABLE IF NOT EXISTS workforce_transfers (
 );
 
 -- 8. Workforce Promotion Workflows
--- Coordinates title mutation on M2 employments, system role mutation on M2 person_roles, and assignments via M3.
 CREATE TABLE IF NOT EXISTS workforce_promotions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -180,7 +164,6 @@ CREATE TABLE IF NOT EXISTS workforce_offboardings (
 );
 
 -- 10. Workforce Offboarding Clearances
--- Financial obligation clearance links optionally to M9 finance_obligations(id).
 CREATE TABLE IF NOT EXISTS workforce_offboarding_clearances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -188,20 +171,15 @@ CREATE TABLE IF NOT EXISTS workforce_offboarding_clearances (
     clearance_type VARCHAR(50) NOT NULL CHECK (clearance_type IN ('it_access', 'equipment_return', 'financial_settlement', 'knowledge_handover', 'other')),
     department_id UUID NULL REFERENCES departments(id) ON DELETE SET NULL,
     verifier_person_id UUID NULL REFERENCES people(id) ON DELETE SET NULL,
-    financial_obligation_id UUID NULL REFERENCES financial_obligations(id) ON DELETE SET NULL, -- M9 Finance Integration
+    financial_obligation_id UUID NULL REFERENCES financial_obligations(id) ON DELETE SET NULL,
     status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'cleared', 'waived')),
     notes TEXT NULL,
     cleared_at TIMESTAMPTZ NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-```
 
----
-
-## 3. Database Indexing Strategy
-
-```sql
+-- Indexes
 CREATE INDEX IF NOT EXISTS idx_workforce_onboarding_templates_org ON workforce_onboarding_templates(organization_id);
 CREATE INDEX IF NOT EXISTS idx_workforce_onboarding_template_tasks_tpl ON workforce_onboarding_template_tasks(organization_id, template_id);
 CREATE INDEX IF NOT EXISTS idx_workforce_onboarding_template_items_tpl ON workforce_onboarding_template_items(organization_id, template_id);
@@ -214,5 +192,3 @@ CREATE INDEX IF NOT EXISTS idx_workforce_promotions_org_emp ON workforce_promoti
 CREATE INDEX IF NOT EXISTS idx_workforce_offboardings_org_emp ON workforce_offboardings(organization_id, employment_id);
 CREATE INDEX IF NOT EXISTS idx_workforce_offboarding_clearances_offboard ON workforce_offboarding_clearances(organization_id, offboarding_id);
 CREATE INDEX IF NOT EXISTS idx_workforce_offboarding_clearances_fin_obl ON workforce_offboarding_clearances(organization_id, financial_obligation_id);
-```
-

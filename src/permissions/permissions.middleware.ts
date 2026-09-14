@@ -45,6 +45,11 @@ export type Capability =
   | 'recruitment:assess'
   | 'recruitment:decide'
   | 'recruitment:offer'
+  | 'workforce:view'
+  | 'workforce:create'
+  | 'workforce:manage'
+  | 'workforce:admin'
+  | 'workforce:approve'
   | 'analytics:view'
   | 'analytics:define';
 
@@ -57,6 +62,11 @@ export const ROLE_CAPABILITY_MAP: Record<'org_admin' | 'org_member', Capability[
     'recruitment:assess',
     'recruitment:decide',
     'recruitment:offer',
+    'workforce:view',
+    'workforce:create',
+    'workforce:manage',
+    'workforce:admin',
+    'workforce:approve',
     'analytics:view',
     'analytics:define',
   ],
@@ -66,6 +76,9 @@ export const ROLE_CAPABILITY_MAP: Record<'org_admin' | 'org_member', Capability[
     'recruitment:manage',
     'recruitment:assess',
     'recruitment:offer',
+    'workforce:view',
+    'workforce:create',
+    'workforce:manage',
     'analytics:view',
   ],
 };

@@ -123,6 +123,42 @@ export class PeopleRepository {
     };
   }
 
+  public static async findPersonByUserId(organizationId: string, userId: string): Promise<PersonProps | null> {
+    const db = getDbClient();
+    const res = await db.query<{
+      id: string;
+      organization_id: string;
+      user_id: string | null;
+      first_name: string;
+      last_name: string;
+      email: string;
+      phone: string | null;
+      status: PersonStatus;
+      created_at: Date;
+      updated_at: Date;
+    }>(
+      `SELECT id, organization_id, user_id, first_name, last_name, email, phone, status, created_at, updated_at
+       FROM people
+       WHERE user_id = $1 AND organization_id = $2;`,
+      [userId, organizationId]
+    );
+
+    if (res.rows.length === 0) return null;
+    const row = res.rows[0];
+    return {
+      id: row.id,
+      organizationId: row.organization_id,
+      userId: row.user_id,
+      firstName: row.first_name,
+      lastName: row.last_name,
+      email: row.email,
+      phone: row.phone,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
   public static async listPeople(organizationId: string): Promise<PersonProps[]> {
     const db = getDbClient();
     const res = await db.query<{

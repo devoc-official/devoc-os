@@ -181,6 +181,16 @@ export class EmploymentService {
     });
   }
 
+  public static async transitionStatus(
+    organizationId: string,
+    id: string,
+    data: { nextStatus: EmploymentStatus; changeReason?: string; effectiveDate?: Date },
+    actorId?: string,
+    requestId?: string
+  ) {
+    return this.updateEmploymentStatus(organizationId, id, data, actorId, requestId);
+  }
+
   public static async getEmploymentHistory(organizationId: string, employmentId: string) {
     await this.getEmployment(organizationId, employmentId);
     return EmploymentRepository.listHistory(organizationId, employmentId);

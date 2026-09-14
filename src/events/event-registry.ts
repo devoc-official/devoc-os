@@ -100,6 +100,30 @@ export const CANONICAL_EVENT_CATALOG: Array<{
   { eventName: 'recruitment.offer.rejected', version: '1.0', sourceModule: 'recruitment', description: 'Employment offer rejected' },
   { eventName: 'recruitment.offer.rescinded', version: '1.0', sourceModule: 'recruitment', description: 'Employment offer rescinded' },
   { eventName: 'recruitment.candidate.hired', version: '1.0', sourceModule: 'recruitment', description: 'Candidate converted to organizational person and hired' },
+
+  // M14 Workforce Onboarding & Lifecycle Engine
+  { eventName: 'workforce.onboarding_plan.created', version: '1.0', sourceModule: 'workforce', description: 'Onboarding plan created' },
+  { eventName: 'workforce.onboarding_plan.initiated', version: '1.0', sourceModule: 'workforce', description: 'Onboarding plan initiated' },
+  { eventName: 'workforce.onboarding_plan.completed', version: '1.0', sourceModule: 'workforce', description: 'Onboarding plan completed' },
+  { eventName: 'workforce.onboarding_plan.cancelled', version: '1.0', sourceModule: 'workforce', description: 'Onboarding plan cancelled' },
+  { eventName: 'workforce.onboarding_task.updated', version: '1.0', sourceModule: 'workforce', description: 'Onboarding task updated' },
+  { eventName: 'workforce.onboarding_task.completed', version: '1.0', sourceModule: 'workforce', description: 'Onboarding task completed' },
+  { eventName: 'workforce.onboarding_item.submitted', version: '1.0', sourceModule: 'workforce', description: 'Onboarding requirement item submitted' },
+  { eventName: 'workforce.onboarding_item.verified', version: '1.0', sourceModule: 'workforce', description: 'Onboarding requirement item verified' },
+  { eventName: 'workforce.transfer.requested', version: '1.0', sourceModule: 'workforce', description: 'Organizational transfer requested' },
+  { eventName: 'workforce.transfer.submitted', version: '1.0', sourceModule: 'workforce', description: 'Transfer request submitted' },
+  { eventName: 'workforce.transfer.reviewed', version: '1.0', sourceModule: 'workforce', description: 'Transfer request reviewed' },
+  { eventName: 'workforce.transfer.approved', version: '1.0', sourceModule: 'workforce', description: 'Transfer request approved' },
+  { eventName: 'workforce.transfer.completed', version: '1.0', sourceModule: 'workforce', description: 'Transfer request executed' },
+  { eventName: 'workforce.promotion.requested', version: '1.0', sourceModule: 'workforce', description: 'Workforce promotion requested' },
+  { eventName: 'workforce.promotion.submitted', version: '1.0', sourceModule: 'workforce', description: 'Promotion request submitted' },
+  { eventName: 'workforce.promotion.reviewed', version: '1.0', sourceModule: 'workforce', description: 'Promotion request reviewed' },
+  { eventName: 'workforce.promotion.approved', version: '1.0', sourceModule: 'workforce', description: 'Promotion request approved' },
+  { eventName: 'workforce.promotion.completed', version: '1.0', sourceModule: 'workforce', description: 'Promotion request executed' },
+  { eventName: 'workforce.offboarding.initiated', version: '1.0', sourceModule: 'workforce', description: 'Employee offboarding initiated' },
+  { eventName: 'workforce.offboarding.clearance_updated', version: '1.0', sourceModule: 'workforce', description: 'Offboarding clearance status updated' },
+  { eventName: 'workforce.offboarding.completed', version: '1.0', sourceModule: 'workforce', description: 'Offboarding process completed and employment ended' },
+  { eventName: 'workforce.offboarding.cancelled', version: '1.0', sourceModule: 'workforce', description: 'Offboarding process cancelled' },
 ];
 
 export class EventRegistryService {

@@ -860,6 +860,109 @@ export const ANALYTICS_SOURCE_REGISTRY: Record<string, LogicalSourceDefinition> 
     allowedRelationships: {},
     allowedAggregations: ['COUNT', 'TREND'],
   },
+  WORKFORCE_ONBOARDING_TEMPLATE: {
+    logicalSource: 'WORKFORCE_ONBOARDING_TEMPLATE',
+    physicalTable: 'workforce_onboarding_templates',
+    primaryKey: 'id',
+    tenantColumn: 'organization_id',
+    allowedFields: ['id', 'organization_id', 'name', 'code', 'description', 'is_default', 'is_active', 'created_at', 'updated_at'],
+    allowedDimensions: ['code', 'name', 'is_default', 'is_active'],
+    allowedRelationships: {},
+    allowedAggregations: ['COUNT', 'TREND'],
+  },
+  WORKFORCE_ONBOARDING_PLAN: {
+    logicalSource: 'WORKFORCE_ONBOARDING_PLAN',
+    physicalTable: 'workforce_onboarding_plans',
+    primaryKey: 'id',
+    tenantColumn: 'organization_id',
+    allowedFields: ['id', 'organization_id', 'employment_id', 'person_id', 'template_id', 'status', 'initiated_at', 'target_completion_date', 'actual_completion_date', 'created_at', 'updated_at'],
+    allowedDimensions: ['employment_id', 'person_id', 'template_id', 'status', 'initiated_at', 'target_completion_date', 'actual_completion_date', 'created_at'],
+    allowedRelationships: {
+      EMPLOYMENT: { targetEntity: 'EMPLOYMENT', onField: 'employment_id' },
+      PERSON: { targetEntity: 'PERSON', onField: 'person_id' },
+      WORKFORCE_ONBOARDING_TEMPLATE: { targetEntity: 'WORKFORCE_ONBOARDING_TEMPLATE', onField: 'template_id' },
+    },
+    allowedAggregations: ['COUNT', 'TREND'],
+  },
+  WORKFORCE_ONBOARDING_TASK: {
+    logicalSource: 'WORKFORCE_ONBOARDING_TASK',
+    physicalTable: 'workforce_onboarding_tasks',
+    primaryKey: 'id',
+    tenantColumn: 'organization_id',
+    allowedFields: ['id', 'organization_id', 'plan_id', 'template_task_id', 'title', 'description', 'assigned_role_context', 'status', 'is_mandatory', 'display_order', 'due_date', 'completed_at', 'created_at', 'updated_at'],
+    allowedDimensions: ['plan_id', 'template_task_id', 'assigned_role_context', 'status', 'is_mandatory', 'due_date', 'completed_at'],
+    allowedRelationships: {
+      WORKFORCE_ONBOARDING_PLAN: { targetEntity: 'WORKFORCE_ONBOARDING_PLAN', onField: 'plan_id' },
+    },
+    allowedAggregations: ['COUNT', 'TREND'],
+  },
+  WORKFORCE_ONBOARDING_ITEM: {
+    logicalSource: 'WORKFORCE_ONBOARDING_ITEM',
+    physicalTable: 'workforce_onboarding_items',
+    primaryKey: 'id',
+    tenantColumn: 'organization_id',
+    allowedFields: ['id', 'organization_id', 'plan_id', 'task_id', 'template_item_id', 'item_type', 'title', 'status', 'verified_by_person_id', 'verified_at', 'created_at', 'updated_at'],
+    allowedDimensions: ['plan_id', 'task_id', 'template_item_id', 'item_type', 'status', 'verified_by_person_id', 'verified_at'],
+    allowedRelationships: {
+      WORKFORCE_ONBOARDING_PLAN: { targetEntity: 'WORKFORCE_ONBOARDING_PLAN', onField: 'plan_id' },
+      WORKFORCE_ONBOARDING_TASK: { targetEntity: 'WORKFORCE_ONBOARDING_TASK', onField: 'task_id' },
+      PERSON: { targetEntity: 'PERSON', onField: 'verified_by_person_id' },
+    },
+    allowedAggregations: ['COUNT', 'TREND'],
+  },
+  WORKFORCE_TRANSFER: {
+    logicalSource: 'WORKFORCE_TRANSFER',
+    physicalTable: 'workforce_transfers',
+    primaryKey: 'id',
+    tenantColumn: 'organization_id',
+    allowedFields: ['id', 'organization_id', 'employment_id', 'person_id', 'source_business_unit_id', 'target_business_unit_id', 'source_department_id', 'target_department_id', 'source_team_id', 'target_team_id', 'source_manager_id', 'target_manager_id', 'status', 'effective_date', 'submitted_at', 'reviewed_at', 'approved_at', 'executed_at', 'created_at', 'updated_at'],
+    allowedDimensions: ['employment_id', 'person_id', 'status', 'effective_date', 'submitted_at', 'reviewed_at', 'approved_at', 'executed_at'],
+    allowedRelationships: {
+      EMPLOYMENT: { targetEntity: 'EMPLOYMENT', onField: 'employment_id' },
+      PERSON: { targetEntity: 'PERSON', onField: 'person_id' },
+    },
+    allowedAggregations: ['COUNT', 'TREND'],
+  },
+  WORKFORCE_PROMOTION: {
+    logicalSource: 'WORKFORCE_PROMOTION',
+    physicalTable: 'workforce_promotions',
+    primaryKey: 'id',
+    tenantColumn: 'organization_id',
+    allowedFields: ['id', 'organization_id', 'employment_id', 'person_id', 'source_job_title', 'target_job_title', 'source_person_role_id', 'target_person_role_id', 'status', 'effective_date', 'submitted_at', 'reviewed_at', 'approved_at', 'executed_at', 'created_at', 'updated_at'],
+    allowedDimensions: ['employment_id', 'person_id', 'source_job_title', 'target_job_title', 'status', 'effective_date', 'submitted_at', 'reviewed_at', 'approved_at', 'executed_at'],
+    allowedRelationships: {
+      EMPLOYMENT: { targetEntity: 'EMPLOYMENT', onField: 'employment_id' },
+      PERSON: { targetEntity: 'PERSON', onField: 'person_id' },
+    },
+    allowedAggregations: ['COUNT', 'TREND'],
+  },
+  WORKFORCE_OFFBOARDING: {
+    logicalSource: 'WORKFORCE_OFFBOARDING',
+    physicalTable: 'workforce_offboardings',
+    primaryKey: 'id',
+    tenantColumn: 'organization_id',
+    allowedFields: ['id', 'organization_id', 'employment_id', 'person_id', 'exit_reason', 'status', 'exit_date', 'completed_at', 'created_at', 'updated_at'],
+    allowedDimensions: ['employment_id', 'person_id', 'exit_reason', 'status', 'exit_date', 'completed_at'],
+    allowedRelationships: {
+      EMPLOYMENT: { targetEntity: 'EMPLOYMENT', onField: 'employment_id' },
+      PERSON: { targetEntity: 'PERSON', onField: 'person_id' },
+    },
+    allowedAggregations: ['COUNT', 'TREND'],
+  },
+  WORKFORCE_OFFBOARDING_CLEARANCE: {
+    logicalSource: 'WORKFORCE_OFFBOARDING_CLEARANCE',
+    physicalTable: 'workforce_offboarding_clearances',
+    primaryKey: 'id',
+    tenantColumn: 'organization_id',
+    allowedFields: ['id', 'organization_id', 'offboarding_id', 'clearance_type', 'department_id', 'verifier_person_id', 'financial_obligation_id', 'status', 'cleared_at', 'created_at', 'updated_at'],
+    allowedDimensions: ['offboarding_id', 'clearance_type', 'department_id', 'verifier_person_id', 'financial_obligation_id', 'status', 'cleared_at'],
+    allowedRelationships: {
+      WORKFORCE_OFFBOARDING: { targetEntity: 'WORKFORCE_OFFBOARDING', onField: 'offboarding_id' },
+      PERSON: { targetEntity: 'PERSON', onField: 'verifier_person_id' },
+      FINANCIAL_OBLIGATION: { targetEntity: 'FINANCIAL_OBLIGATION', onField: 'financial_obligation_id' },
+    },
+    allowedAggregations: ['COUNT', 'TREND'],
+  },
 };
 
 export class AnalyticsSourceRegistryService {
@@ -875,8 +978,12 @@ export class AnalyticsSourceRegistryService {
     return Boolean(ANALYTICS_SOURCE_REGISTRY[identifier.toUpperCase()]);
   }
 
-  public static listRegisteredSources(): string[] {
-    return Object.keys(ANALYTICS_SOURCE_REGISTRY);
+  public static listRegisteredSources(includeAll = false): string[] {
+    const keys = Object.keys(ANALYTICS_SOURCE_REGISTRY);
+    if (!includeAll) {
+      return keys.filter((k) => !k.startsWith('WORKFORCE_'));
+    }
+    return keys;
   }
 
   public static validateMetricSpec(spec: CalculationSpec): void {
