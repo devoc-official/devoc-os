@@ -50,3 +50,15 @@ export async function addReviewChangeController(req: Request, res: Response, nex
     next(err);
   }
 }
+
+export async function listReviewChangesController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const orgId = req.params.orgId as string;
+    const enrollmentId = req.params.enrollmentId as string;
+    const reviewId = req.params.reviewId as string;
+    const changes = await reviewService.listReviewChanges(orgId, enrollmentId, reviewId);
+    res.json({ data: changes, meta: { count: changes.length } });
+  } catch (err) {
+    next(err);
+  }
+}

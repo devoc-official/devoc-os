@@ -293,6 +293,18 @@ describe('Milestone 7 — Learning Engine REST API E2E Integration Tests', () =>
       expect(res.status).toBe(201);
       expect(res.body.data.changeType).toBe('complete_milestone');
     });
+
+    it('GET /learning-enrollments/:enrollmentId/reviews/:reviewId/changes — should list review roadmap changes', async () => {
+      const res = await request(app)
+        .get(`/api/v1/organizations/${org.id}/learning-enrollments/${enrollmentId}/reviews/${reviewId}/changes`)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Organization-Id', org.id);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toBeInstanceOf(Array);
+      expect(res.body.data.length).toBeGreaterThan(0);
+      expect(res.body.data[0].changeType).toBe('complete_milestone');
+    });
   });
 
   describe('5. Learning Assessments API', () => {

@@ -150,4 +150,13 @@ export class LearningReviewService {
 
     return change;
   }
+
+  public async listReviewChanges(
+    organizationId: string,
+    enrollmentId: string,
+    reviewId: string
+  ): Promise<ReviewChangeProps[]> {
+    await this.getReviewById(organizationId, enrollmentId, reviewId);
+    return this.repo.listReviewChangesByReviewId(organizationId, reviewId);
+  }
 }

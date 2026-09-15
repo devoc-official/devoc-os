@@ -39,6 +39,7 @@ import {
   listReviewsController,
   getReviewByIdController,
   addReviewChangeController,
+  listReviewChangesController,
 } from './learning-review.controller.js';
 import {
   createAssessmentController,
@@ -91,6 +92,7 @@ learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/re
 learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/reviews', listReviewsController);
 learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/reviews/:reviewId', getReviewByIdController);
 learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/reviews/:reviewId/changes', addReviewChangeController);
+learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/reviews/:reviewId/changes', listReviewChangesController);
 
 // Assessments
 learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/assessments', createAssessmentController);

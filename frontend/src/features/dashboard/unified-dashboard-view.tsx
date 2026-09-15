@@ -9,6 +9,8 @@ import { useRole } from '../../roles/role.context';
 import { useAuth } from '../../auth/use-auth';
 import { Skeleton } from '../../components/ui/skeleton';
 
+import { StudentHomeView } from '../student/views/student-home-view';
+
 export function UnifiedDashboardView() {
   const { currentRole, switchRole, activeRoles, isLoading } = useRole();
   const { currentOrganization } = useAuth();
@@ -37,6 +39,19 @@ export function UnifiedDashboardView() {
 
   const activeRoleName =
     activeRoles.find((r) => r.category === currentRole)?.name || currentRole;
+
+  if (currentRole === 'student') {
+    return (
+      <div className="space-y-6">
+        <ContextBanner
+          roleName={activeRoleName}
+          scopeName={currentOrganization?.organizationName}
+          onResetToUnified={() => switchRole('all')}
+        />
+        <StudentHomeView />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
