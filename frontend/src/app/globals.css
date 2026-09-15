@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light Theme Surfaces */
+    --bg-app: #F8F9FA;
+    --surface-primary: #FFFFFF;
+    --surface-secondary: #F4F5F6;
+    --surface-tertiary: #EEF0F2;
+    --surface-elevated: #FFFFFF;
+
+    /* Light Theme Typography */
+    --text-primary: #17191C;
+    --text-secondary: #555B63;
+    --text-tertiary: #737982;
+    --text-disabled: #A5AAB1;
+
+    /* Light Theme Borders */
+    --border-default: #E2E5E8;
+    --border-strong: #D4D8DD;
+    --divider: #ECEEF0;
+
+    /* Brand Accents */
+    --brand-primary: #4F46E5;
+    --brand-primary-hover: #4338CA;
+    --brand-subtle: #EEF2FF;
+    --brand-ring: rgba(79, 70, 229, 0.25);
+
+    /* Status Colors */
+    --status-success-bg: #ECFDF5;
+    --status-success-text: #065F46;
+    --status-success-border: #A7F3D0;
+
+    --status-warning-bg: #FFFBEB;
+    --status-warning-text: #92400E;
+    --status-warning-border: #FDE68A;
+
+    --status-error-bg: #FEF2F2;
+    --status-error-text: #991B1B;
+    --status-error-border: #FECACA;
+
+    --status-info-bg: #EFF6FF;
+    --status-info-text: #1E40AF;
+    --status-info-border: #BFDBFE;
+  }
+
+  .dark {
+    /* Dark Theme Surfaces */
+    --bg-app: #111315;
+    --surface-primary: #17191C;
+    --surface-secondary: #1D2024;
+    --surface-tertiary: #23272C;
+    --surface-elevated: #2A2E33;
+
+    /* Dark Theme Typography */
+    --text-primary: #F2F4F5;
+    --text-secondary: #A8ADB4;
+    --text-tertiary: #7A8089;
+    --text-disabled: #52575E;
+
+    /* Dark Theme Borders */
+    --border-default: #2A2E33;
+    --border-strong: #383D44;
+    --divider: #23272C;
+
+    /* Brand Accents */
+    --brand-primary: #6366F1;
+    --brand-primary-hover: #4F46E5;
+    --brand-subtle: rgba(99, 102, 241, 0.15);
+    --brand-ring: rgba(99, 102, 241, 0.35);
+
+    /* Status Colors */
+    --status-success-bg: rgba(16, 185, 129, 0.12);
+    --status-success-text: #34D399;
+    --status-success-border: rgba(16, 185, 129, 0.3);
+
+    --status-warning-bg: rgba(245, 158, 11, 0.12);
+    --status-warning-text: #FBBF24;
+    --status-warning-border: rgba(245, 158, 11, 0.3);
+
+    --status-error-bg: rgba(239, 68, 68, 0.12);
+    --status-error-text: #F87171;
+    --status-error-border: rgba(239, 68, 68, 0.3);
+
+    --status-info-bg: rgba(59, 130, 246, 0.12);
+    --status-info-text: #60A5FA;
+    --status-info-border: rgba(59, 130, 246, 0.3);
+  }
+
+  body {
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Accessible Focus Rings */
+  :focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+
+  /* Tabular Figures for Numbers */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -14,7 +14,11 @@
     "seed": "tsx src/scripts/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "test:frontend": "npm --prefix frontend test",
+    "typecheck:frontend": "npm --prefix frontend run typecheck"
   },
   "keywords": [
     "multi-tenant",

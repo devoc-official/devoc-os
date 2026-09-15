@@ -1,0 +1,284 @@
+import {
+  LayoutDashboard,
+  BookOpen,
+  Compass,
+  ListTodo,
+  CheckCircle2,
+  Users,
+  MessageSquare,
+  Briefcase,
+  Award,
+  User,
+  Clock,
+  Calendar,
+  FileText,
+  BarChart3,
+  Building2,
+  ShieldCheck,
+  GraduationCap,
+  FolderGit2,
+  UserCheck,
+  TrendingUp,
+  Sliders,
+  Sparkles,
+  Search,
+} from 'lucide-react';
+import { NavSection, RoleNavigationConfig } from './navigation.types';
+import { RoleCategory } from '../roles/roles.types';
+
+export const UNIFIED_NAV_SECTIONS: NavSection[] = [
+  {
+    id: 'core',
+    title: 'Workspace',
+    items: [
+      {
+        id: 'unified-dashboard',
+        label: 'Dashboard',
+        href: '/dashboard',
+        icon: LayoutDashboard,
+        exact: true,
+      },
+      {
+        id: 'unified-work',
+        label: 'Work & Tasks',
+        href: '/work',
+        icon: Briefcase,
+      },
+      {
+        id: 'unified-learning',
+        label: 'Learning',
+        href: '/learning',
+        icon: GraduationCap,
+      },
+      {
+        id: 'unified-workforce',
+        label: 'Workforce & Time',
+        href: '/workforce/time',
+        icon: Clock,
+        requiredCapability: 'workforce_time:view',
+      },
+      {
+        id: 'unified-analytics',
+        label: 'Analytics',
+        href: '/analytics',
+        icon: BarChart3,
+        requiredCapability: 'analytics:view',
+      },
+    ],
+  },
+  {
+    id: 'account',
+    title: 'Account',
+    items: [
+      {
+        id: 'unified-profile',
+        label: 'Profile',
+        href: '/profile',
+        icon: User,
+      },
+    ],
+  },
+];
+
+export const ROLE_NAVIGATION_REGISTRY: Record<RoleCategory, RoleNavigationConfig> = {
+  student: {
+    role: 'student',
+    title: 'Student Experience',
+    description: 'Self-paced learning journey, milestones, and mentor reviews',
+    sections: [
+      {
+        id: 'student-main',
+        title: 'Learning',
+        items: [
+          { id: 'student-home', label: 'Home', href: '/dashboard', icon: LayoutDashboard, exact: true },
+          { id: 'student-learning', label: 'My Learning', href: '/learning', icon: BookOpen },
+          { id: 'student-roadmap', label: 'My Roadmap', href: '/learning/roadmap', icon: Compass },
+          { id: 'student-activities', label: 'Activities', href: '/learning/activities', icon: ListTodo },
+          { id: 'student-assessments', label: 'Assessments', href: '/learning/assessments', icon: CheckCircle2 },
+          { id: 'student-mentor', label: 'My Mentor', href: '/learning/mentor', icon: UserCheck },
+          { id: 'student-reviews', label: 'Reviews', href: '/learning/reviews', icon: MessageSquare },
+          { id: 'student-feedback', label: 'Feedback', href: '/learning/feedback', icon: FileText },
+          { id: 'student-projects', label: 'My Projects', href: '/learning/projects', icon: FolderGit2 },
+          { id: 'student-progress', label: 'Progress', href: '/learning/progress', icon: TrendingUp },
+          { id: 'student-achievements', label: 'Achievements', href: '/learning/achievements', icon: Award },
+          { id: 'student-profile', label: 'Profile', href: '/profile', icon: User },
+        ],
+      },
+    ],
+  },
+  mentor: {
+    role: 'mentor',
+    title: 'Mentor Experience',
+    description: 'Guiding mentees, holding reviews, and evaluating milestone deliverables',
+    sections: [
+      {
+        id: 'mentor-main',
+        title: 'Mentorship',
+        items: [
+          { id: 'mentor-dashboard', label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, exact: true },
+          { id: 'mentor-students', label: 'My Students', href: '/mentor/students', icon: Users },
+          { id: 'mentor-progress', label: 'Learning Progress', href: '/mentor/progress', icon: TrendingUp },
+          { id: 'mentor-reviews', label: 'Reviews', href: '/mentor/reviews', icon: MessageSquare },
+          { id: 'mentor-feedback', label: 'Feedback', href: '/mentor/feedback', icon: FileText },
+          { id: 'mentor-meetings', label: 'Meetings', href: '/mentor/meetings', icon: Calendar },
+          { id: 'mentor-assignments', label: 'Assignments', href: '/mentor/assignments', icon: Briefcase },
+        ],
+      },
+    ],
+  },
+  reviewer: {
+    role: 'reviewer',
+    title: 'Reviewer Experience',
+    description: 'Qualitative milestone assessments, suggestion history, and completion approvals',
+    sections: [
+      {
+        id: 'reviewer-main',
+        title: 'Reviews',
+        items: [
+          { id: 'reviewer-dashboard', label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, exact: true },
+          { id: 'reviewer-queue', label: 'Review Queue', href: '/reviewer/queue', icon: ListTodo },
+          { id: 'reviewer-students', label: 'Students', href: '/reviewer/students', icon: Users },
+          { id: 'reviewer-reviews', label: 'Reviews', href: '/reviewer/reviews', icon: MessageSquare },
+          { id: 'reviewer-assessments', label: 'Assessments', href: '/reviewer/assessments', icon: CheckCircle2 },
+          { id: 'reviewer-suggestions', label: 'Feedback & Suggestions', href: '/reviewer/suggestions', icon: FileText },
+          { id: 'reviewer-history', label: 'Review History', href: '/reviewer/history', icon: Clock },
+        ],
+      },
+    ],
+  },
+  employee: {
+    role: 'employee',
+    title: 'Employee Experience',
+    description: 'Work logging, task tracking, meetings, attendance, and performance reviews',
+    sections: [
+      {
+        id: 'employee-work',
+        title: 'Work & Organization',
+        items: [
+          { id: 'emp-home', label: 'Home', href: '/dashboard', icon: LayoutDashboard, exact: true },
+          { id: 'emp-work', label: 'My Work', href: '/work', icon: Briefcase },
+          { id: 'emp-tasks', label: 'My Tasks', href: '/work/tasks', icon: ListTodo },
+          { id: 'emp-projects', label: 'Projects', href: '/work/projects', icon: FolderGit2 },
+          { id: 'emp-meetings', label: 'Meetings', href: '/work/meetings', icon: Calendar },
+          { id: 'emp-attendance', label: 'Attendance', href: '/workforce/time', icon: Clock },
+          { id: 'emp-timesheets', label: 'Timesheets', href: '/workforce/timesheets', icon: FileText },
+          { id: 'emp-leave', label: 'Leave', href: '/workforce/leave', icon: Calendar },
+          { id: 'emp-evaluations', label: 'Evaluations', href: '/evaluations', icon: CheckCircle2 },
+          { id: 'emp-profile', label: 'Profile', href: '/profile', icon: User },
+        ],
+      },
+    ],
+  },
+  developer: {
+    role: 'developer',
+    title: 'Developer Experience',
+    description: 'Engineering contribution, project tasks, and code reviews',
+    sections: [
+      {
+        id: 'dev-work',
+        title: 'Development',
+        items: [
+          { id: 'dev-home', label: 'Home', href: '/dashboard', icon: LayoutDashboard, exact: true },
+          { id: 'dev-work', label: 'My Work', href: '/work', icon: Briefcase },
+          { id: 'dev-tasks', label: 'My Tasks', href: '/work/tasks', icon: ListTodo },
+          { id: 'dev-projects', label: 'Projects', href: '/work/projects', icon: FolderGit2 },
+          { id: 'dev-meetings', label: 'Meetings', href: '/work/meetings', icon: Calendar },
+          { id: 'dev-attendance', label: 'Attendance', href: '/workforce/time', icon: Clock },
+          { id: 'dev-timesheets', label: 'Timesheets', href: '/workforce/timesheets', icon: FileText },
+          { id: 'dev-profile', label: 'Profile', href: '/profile', icon: User },
+        ],
+      },
+    ],
+  },
+  founder: {
+    role: 'founder',
+    title: 'Founder Perspective',
+    description: 'Holistic cross-BU operational, academic, financial, and strategic oversight',
+    sections: [
+      {
+        id: 'founder-overview',
+        title: 'Executive',
+        items: [
+          { id: 'founder-dashboard', label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, exact: true },
+          { id: 'founder-org', label: 'Organization', href: '/organization', icon: Building2 },
+          { id: 'founder-people', label: 'People', href: '/people', icon: Users },
+          { id: 'founder-academy', label: 'Academy', href: '/academy', icon: GraduationCap },
+          { id: 'founder-projects', label: 'Projects', href: '/projects', icon: FolderGit2 },
+          { id: 'founder-work', label: 'Work', href: '/work', icon: Briefcase },
+          { id: 'founder-learning', label: 'Learning', href: '/learning', icon: BookOpen },
+          { id: 'founder-evaluations', label: 'Evaluations', href: '/evaluations', icon: CheckCircle2 },
+          { id: 'founder-workforce', label: 'Workforce', href: '/workforce', icon: Clock },
+          { id: 'founder-recruitment', label: 'Recruitment', href: '/recruitment', icon: Search },
+          { id: 'founder-finance', label: 'Finance', href: '/finance', icon: TrendingUp },
+          { id: 'founder-meetings', label: 'Meetings', href: '/meetings', icon: Calendar },
+          { id: 'founder-analytics', label: 'Analytics', href: '/analytics', icon: BarChart3 },
+          { id: 'founder-admin', label: 'Administration', href: '/admin', icon: Sliders },
+        ],
+      },
+    ],
+  },
+  academy_head: {
+    role: 'academy_head',
+    title: 'Academy Head Experience',
+    description: 'Curriculum oversight, mentor management, student reviews, and academy analytics',
+    sections: [
+      {
+        id: 'ah-main',
+        title: 'Academy Management',
+        items: [
+          { id: 'ah-dashboard', label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, exact: true },
+          { id: 'ah-students', label: 'Students', href: '/academy/students', icon: Users },
+          { id: 'ah-programs', label: 'Learning Programs', href: '/academy/programs', icon: BookOpen },
+          { id: 'ah-progress', label: 'Learning Progress', href: '/academy/progress', icon: TrendingUp },
+          { id: 'ah-mentors', label: 'Mentors', href: '/academy/mentors', icon: UserCheck },
+          { id: 'ah-reviews', label: 'Review Management', href: '/academy/reviews', icon: MessageSquare },
+          { id: 'ah-assessments', label: 'Assessments', href: '/academy/assessments', icon: CheckCircle2 },
+          { id: 'ah-projects', label: 'Projects', href: '/academy/projects', icon: FolderGit2 },
+          { id: 'ah-placement', label: 'Placement', href: '/academy/placement', icon: Award },
+          { id: 'ah-analytics', label: 'Academy Analytics', href: '/academy/analytics', icon: BarChart3 },
+        ],
+      },
+    ],
+  },
+  project_manager: {
+    role: 'project_manager',
+    title: 'Project Manager Experience',
+    description: 'Sprint planning, resource assignment, deliverables, and team risk tracking',
+    sections: [
+      {
+        id: 'pm-main',
+        title: 'Project Delivery',
+        items: [
+          { id: 'pm-dashboard', label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, exact: true },
+          { id: 'pm-projects', label: 'Projects', href: '/projects', icon: FolderGit2 },
+          { id: 'pm-tasks', label: 'Tasks', href: '/tasks', icon: ListTodo },
+          { id: 'pm-team', label: 'Team', href: '/team', icon: Users },
+          { id: 'pm-assignments', label: 'Assignments', href: '/assignments', icon: Briefcase },
+          { id: 'pm-work', label: 'Work', href: '/work', icon: Clock },
+          { id: 'pm-meetings', label: 'Meetings', href: '/meetings', icon: Calendar },
+          { id: 'pm-risks', label: 'Risks', href: '/risks', icon: Sparkles },
+          { id: 'pm-progress', label: 'Progress', href: '/progress', icon: TrendingUp },
+        ],
+      },
+    ],
+  },
+  admin: {
+    role: 'admin',
+    title: 'System Administration',
+    description: 'Platform settings, tenant configuration, roles, and audit trail inspection',
+    sections: [
+      {
+        id: 'admin-main',
+        title: 'Administration',
+        items: [
+          { id: 'admin-dashboard', label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, exact: true },
+          { id: 'admin-org', label: 'Organization', href: '/organization', icon: Building2 },
+          { id: 'admin-people', label: 'People & Roles', href: '/people', icon: Users },
+          { id: 'admin-permissions', label: 'Permissions', href: '/admin/permissions', icon: ShieldCheck },
+          { id: 'admin-audit', label: 'Audit Log', href: '/admin/audit', icon: FileText },
+          { id: 'admin-settings', label: 'Settings', href: '/admin/settings', icon: Sliders },
+        ],
+      },
+    ],
+  },
+};

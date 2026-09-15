@@ -5,6 +5,8 @@ node_modules/
 # Build & Compilation Outputs
 dist/
 build/
+.next/
+frontend/.next/
 *.tsbuildinfo
 
 # Environment & Secrets

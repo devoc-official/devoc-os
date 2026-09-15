@@ -18,7 +18,8 @@ This index is the primary navigation point for engineering documentation.
 - [Milestone 12 — Admin & Platform Management](01_Implementation/Milestone-12-Admin-Platform.md)
 - [Milestone 13 — Recruitment & Talent Acquisition Engine](01_Implementation/Milestone-13-Recruitment.md)
 - [Milestone 14 — Workforce Onboarding & Lifecycle Engine](01_Implementation/Milestone-14-Onboarding.md)
-- [Milestone 15 — Attendance, Leave & Workforce Time Engine (Status: Architecture Frozen)](01_Implementation/Milestone-15-Workforce-Time.md)
+- [Milestone 15 — Attendance, Leave & Workforce Time Engine](01_Implementation/Milestone-15-Workforce-Time.md)
+- [Milestone F1.2 — Frontend Foundation & Experience Architecture](01_Implementation/Frontend-F1-Foundation.md)
 
 ## Engineering Contracts & Security
 
@@ -98,6 +99,22 @@ This index is the primary navigation point for engineering documentation.
 - [ADR-017 — Recruitment & Talent Acquisition Engine](10_ADR/ADR-017-Recruitment-Talent-Acquisition-Engine.md)
 - [ADR-018 — Workforce Onboarding & Lifecycle Engine](10_ADR/ADR-018-Onboarding-Workforce-Lifecycle.md)
 - [ADR-019 — Attendance, Leave & Workforce Time Engine](10_ADR/ADR-019-Workforce-Time-Engine.md)
+- [ADR-020 — Frontend Experience Architecture](10_ADR/ADR-020-Frontend-Experience-Architecture.md)
+
+## Frontend Architecture & Design System
+
+- [Frontend Architecture](20_Frontend/Frontend-Architecture.md)
+- [Design System & Tokens](20_Frontend/Design-System.md)
+- [Experience Architecture](20_Frontend/Experience-Architecture.md)
+- [Navigation Architecture](20_Frontend/Navigation.md)
+- [Role System](20_Frontend/Role-System.md)
+- [Permission UX](20_Frontend/Permission-UX.md)
+- [Dashboard Architecture](20_Frontend/Dashboard-Architecture.md)
+- [API Integration](20_Frontend/API-Integration.md)
+- [Responsive Strategy](20_Frontend/Responsive-Strategy.md)
+- [Accessibility (WCAG 2.2 AA)](20_Frontend/Accessibility.md)
+- [Frontend Testing](20_Frontend/Frontend-Testing.md)
+- [Implementation Status & Roadmap](20_Frontend/Implementation-Status.md)
 
 ## Documentation Ownership
 
