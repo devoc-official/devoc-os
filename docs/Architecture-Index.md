@@ -116,6 +116,14 @@ This index is the primary navigation point for engineering documentation.
 - [Frontend Testing](20_Frontend/Frontend-Testing.md)
 - [Implementation Status & Roadmap](20_Frontend/Implementation-Status.md)
 
+## System Hardening & Production Audit
+
+- [System Hardening Master Report](30_Hardening/System-Hardening-Report.md)
+- [Security & Tenant Isolation Audit](30_Hardening/Security-Audit.md)
+- [Performance & Resource Safety Audit](30_Hardening/Performance-Audit.md)
+- [Accessibility (WCAG 2.2 AA) Audit](30_Hardening/Accessibility-Audit.md)
+- [Test Coverage & Invariant Audit](30_Hardening/Test-Coverage-Audit.md)
+
 ## Documentation Ownership
 
 AI coding agents maintain implementation documentation as part of feature delivery according to `AGENTS.md` and `docs/AI/Development-Workflow.md`.

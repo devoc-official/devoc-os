@@ -10,6 +10,7 @@
 | **F4 — Employee, Developer & PM Experience** | Work logs, task backlog & sprint boards, project milestone management, attendance check-in/out, weekly timesheet creation, leave balance request workflows, developer command center, PM project cockpit, and Section 38 risk governance. | **COMPLETE** |
 | **F5 — Founder & Academy Head Experience** | Executive company-wide dashboard, multi-BU orchestration, budget allocation, Academy cohort velocity, mentor-student allocation, placement analytics. | **COMPLETE** |
 | **F6 — Admin & Operations Experience** | Multi-tenant platform settings, user provisioning, role-permission matrix administration, organizational structure, master data taxonomies, feature flags, immutable audit logs. | **COMPLETE + LOCKED** |
+| **System Hardening & Production Audit** | End-to-end multi-tenant boundary verification, contextual authorization hardening, dedicated connection checkout atomicity, WCAG 2.2 AA accessibility, cross-module invariant testing, 0 P0/P1 issues. | **COMPLETE + LOCKED** |
 
 ---
 
