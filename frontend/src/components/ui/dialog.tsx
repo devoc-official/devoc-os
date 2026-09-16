@@ -3,8 +3,10 @@ import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export interface DialogProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  open?: boolean;
+  onClose?: () => void;
+  onOpenChange?: (open: boolean) => void;
   title?: string;
   description?: string;
   children: React.ReactNode;
@@ -14,22 +16,29 @@ export interface DialogProps {
 
 export function Dialog({
   isOpen,
+  open,
   onClose,
+  onOpenChange,
   title,
   description,
   children,
   className,
   maxWidth = 'md',
 }: DialogProps) {
+  const isVisible = open ?? isOpen ?? false;
+  const handleClose = () => {
+    if (onOpenChange) onOpenChange(false);
+    if (onClose) onClose();
+  };
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
+      if (e.key === 'Escape' && isVisible) {
+        handleClose();
       }
     };
-    if (isOpen) {
+    if (isVisible) {
       document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
     }
@@ -37,9 +46,9 @@ export function Dialog({
       document.body.style.overflow = '';
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isVisible]);
 
-  if (!isOpen) return null;
+  if (!isVisible) return null;
 
   const maxWidths = {
     sm: 'max-w-sm',
@@ -60,7 +69,7 @@ export function Dialog({
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-none transition-opacity"
-        onClick={onClose}
+        onClick={handleClose}
         aria-hidden="true"
       />
 
@@ -73,32 +82,100 @@ export function Dialog({
           className
         )}
       >
-        <div className="flex items-start justify-between pb-4 border-b border-devoc-border">
-          <div>
-            {title && (
-              <h2 id="dialog-title" className="text-base font-semibold text-devoc-text-primary">
-                {title}
-              </h2>
-            )}
-            {description && (
-              <p id="dialog-description" className="mt-1 text-xs text-devoc-text-secondary">
-                {description}
-              </p>
-            )}
+        {(title || description) ? (
+          <div className="flex items-start justify-between pb-4 border-b border-devoc-border">
+            <div>
+              {title && (
+                <h2 id="dialog-title" className="text-base font-semibold text-devoc-text-primary">
+                  {title}
+                </h2>
+              )}
+              {description && (
+                <p id="dialog-description" className="mt-1 text-xs text-devoc-text-secondary">
+                  {description}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="rounded-sm p-1 text-devoc-text-tertiary hover:bg-devoc-surface-secondary hover:text-devoc-text-primary focus:outline-none focus:ring-2 focus:ring-devoc-brand-ring"
+              aria-label="Close dialog"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
+        ) : (
           <button
             type="button"
-            onClick={onClose}
-            className="rounded-sm p-1 text-devoc-text-tertiary hover:bg-devoc-surface-secondary hover:text-devoc-text-primary focus:outline-none focus:ring-2 focus:ring-devoc-brand-ring"
+            onClick={handleClose}
+            className="absolute top-4 right-4 rounded-sm p-1 text-devoc-text-tertiary hover:bg-devoc-surface-secondary hover:text-devoc-text-primary focus:outline-none focus:ring-2 focus:ring-devoc-brand-ring z-10"
             aria-label="Close dialog"
           >
             <X className="h-4 w-4" />
           </button>
-        </div>
+        )}
 
-        <div className="mt-4">{children}</div>
+        <div className={title || description ? 'mt-4' : ''}>{children}</div>
       </div>
     </div>
+  );
+}
+
+export function DialogContent({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn('space-y-4', className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function DialogHeader({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn('flex flex-col space-y-1.5 pb-3 border-b border-devoc-border', className)}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function DialogTitle({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLHeadingElement>) {
+  return (
+    <h2
+      className={cn('text-base font-semibold text-devoc-text-primary', className)}
+      {...props}
+    >
+      {children}
+    </h2>
+  );
+}
+
+export function DialogDescription({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLParagraphElement>) {
+  return (
+    <p
+      className={cn('text-xs text-devoc-text-secondary', className)}
+      {...props}
+    >
+      {children}
+    </p>
   );
 }
 
@@ -117,3 +194,4 @@ export function DialogFooter({
     </div>
   );
 }
+

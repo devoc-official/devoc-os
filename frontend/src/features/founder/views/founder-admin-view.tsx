@@ -48,7 +48,7 @@ export function FounderAdminView() {
       width: '130px',
       render: (m) => (
         <span className="text-[11px] text-devoc-text-muted">
-          {new Date(m.joinedAt).toLocaleDateString()}
+          {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString() : '—'}
         </span>
       ),
     },

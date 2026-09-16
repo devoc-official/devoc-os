@@ -17,6 +17,7 @@ import { DeveloperDashboardView } from '../developer/views/developer-dashboard-v
 import { PMDashboardView } from '../pm/views/pm-dashboard-view';
 import { FounderDashboardView } from '../founder/views/founder-dashboard-view';
 import { AcademyHeadDashboardView } from '../academy-head/views/academy-head-dashboard-view';
+import { AdminDashboardView } from '../admin/views/admin-dashboard-view';
 
 export function UnifiedDashboardView() {
   const { currentRole, switchRole, activeRoles, isLoading } = useRole();
@@ -141,6 +142,19 @@ export function UnifiedDashboardView() {
           onResetToUnified={() => switchRole('all')}
         />
         <AcademyHeadDashboardView />
+      </div>
+    );
+  }
+
+  if (currentRole === 'admin') {
+    return (
+      <div className="space-y-6">
+        <ContextBanner
+          roleName={activeRoleName}
+          scopeName={currentOrganization?.organizationName}
+          onResetToUnified={() => switchRole('all')}
+        />
+        <AdminDashboardView />
       </div>
     );
   }

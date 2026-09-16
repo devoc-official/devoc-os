@@ -22,6 +22,11 @@ import {
   Sliders,
   Sparkles,
   Search,
+  Key,
+  Database,
+  Settings,
+  Network,
+  ToggleLeft,
 } from 'lucide-react';
 import { NavSection, RoleNavigationConfig } from './navigation.types';
 import { RoleCategory } from '../roles/roles.types';
@@ -267,18 +272,22 @@ export const ROLE_NAVIGATION_REGISTRY: Record<RoleCategory, RoleNavigationConfig
   admin: {
     role: 'admin',
     title: 'System Administration',
-    description: 'Platform settings, tenant configuration, roles, and audit trail inspection',
+    description: 'Platform settings, tenant configuration, roles, master data, and audit trail',
     sections: [
       {
         id: 'admin-main',
         title: 'Administration',
         items: [
-          { id: 'admin-dashboard', label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, exact: true },
-          { id: 'admin-org', label: 'Organization', href: '/organization', icon: Building2 },
-          { id: 'admin-people', label: 'People & Roles', href: '/people', icon: Users },
-          { id: 'admin-permissions', label: 'Permissions', href: '/admin/permissions', icon: ShieldCheck },
-          { id: 'admin-audit', label: 'Audit Log', href: '/admin/audit', icon: FileText },
-          { id: 'admin-settings', label: 'Settings', href: '/admin/settings', icon: Sliders },
+          { id: 'admin-dashboard', label: 'Dashboard', href: '/admin', icon: LayoutDashboard, exact: true },
+          { id: 'admin-organization', label: 'Organization', href: '/admin/organization', icon: Building2 },
+          { id: 'admin-users', label: 'Users & Access', href: '/admin/users', icon: Key },
+          { id: 'admin-people', label: 'People', href: '/admin/people', icon: Users },
+          { id: 'admin-structure', label: 'Business Structure', href: '/admin/structure', icon: Network },
+          { id: 'admin-roles', label: 'Roles & Permissions', href: '/admin/roles', icon: ShieldCheck },
+          { id: 'admin-master-data', label: 'Master Data', href: '/admin/master-data', icon: Database },
+          { id: 'admin-features', label: 'Feature Configuration', href: '/admin/features', icon: ToggleLeft },
+          { id: 'admin-settings', label: 'Operational Settings', href: '/admin/settings', icon: Settings },
+          { id: 'admin-audit', label: 'Audit', href: '/admin/audit', icon: FileText },
         ],
       },
     ],

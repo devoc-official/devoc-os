@@ -68,6 +68,8 @@ export function resolveRolesFromBackend(
       category = 'project_manager';
     } else if (code.includes('ACADEMY_HEAD') || code.includes('HEAD')) {
       category = 'academy_head';
+    } else if (code.includes('ADMIN')) {
+      category = 'admin';
     } else {
       category = 'employee';
     }
