@@ -29,24 +29,29 @@ export const resolveTenant = async (
 
     const rawHeader = req.headers['x-organization-id'];
     const headerOrgId = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
-    const rawParam = req.params.organizationId || req.params.id;
-    const paramOrgId = Array.isArray(rawParam) ? rawParam[0] : rawParam;
 
-    let requestedOrgId = headerOrgId;
-    if (paramOrgId && req.path.startsWith('/organizations/')) {
-      if (headerOrgId && headerOrgId !== paramOrgId) {
-        throw new TenantAccessDeniedError('Organization header does not match requested organization ID');
-      }
-      requestedOrgId = paramOrgId;
+    // Extract organization ID from URL path or explicit organization parameters
+    let urlOrgId: string | undefined;
+
+    const explicitOrgParam = req.params.organizationId || req.params.orgId;
+    if (explicitOrgParam) {
+      urlOrgId = Array.isArray(explicitOrgParam) ? explicitOrgParam[0] : explicitOrgParam;
     }
 
-    if (!requestedOrgId) {
-      const urlToMatch = req.originalUrl || req.url || req.path;
-      const match = urlToMatch.match(/\/organizations\/([a-f0-9-]+)/i);
-      if (match) {
-        requestedOrgId = match[1];
-      }
+    // If route is scoped under /organizations/, extract from path or :id param
+    const urlToMatch = req.originalUrl || req.url || req.path;
+    const urlMatch = urlToMatch.match(/\/organizations\/([a-f0-9-]+)/i);
+    if (urlMatch) {
+      urlOrgId = urlMatch[1];
+    } else if (req.params.id && req.path.startsWith('/organizations/')) {
+      urlOrgId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     }
+
+    if (urlOrgId && headerOrgId && headerOrgId !== urlOrgId) {
+      throw new TenantAccessDeniedError('Organization header does not match requested organization ID');
+    }
+
+    const requestedOrgId = urlOrgId || headerOrgId;
 
     if (!requestedOrgId) {
       throw new TenantContextRequiredError('X-Organization-Id header or organization parameter is required');

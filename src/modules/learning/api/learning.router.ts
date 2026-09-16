@@ -50,57 +50,59 @@ import {
   completeAttemptController,
 } from './assessment.controller.js';
 
+import { requireOrgAdmin, requireRole } from '../../../permissions/permissions.middleware.js';
+
 export const learningRouter = Router({ mergeParams: true });
 
 learningRouter.use(authenticate);
 learningRouter.use(resolveTenant);
 
 // Learning Programs
-learningRouter.post('/organizations/:orgId/learning-programs', createProgramController);
-learningRouter.get('/organizations/:orgId/learning-programs', listProgramsController);
-learningRouter.get('/organizations/:orgId/learning-programs/:programId', getProgramByIdController);
-learningRouter.patch('/organizations/:orgId/learning-programs/:programId', updateProgramController);
-learningRouter.post('/organizations/:orgId/learning-programs/:programId/archive', archiveProgramController);
-learningRouter.post('/organizations/:orgId/learning-programs/:programId/milestones', addMilestoneController);
-learningRouter.get('/organizations/:orgId/learning-programs/:programId/milestones', listMilestonesController);
-learningRouter.post('/organizations/:orgId/learning-programs/:programId/milestones/:milestoneId/activities', addActivityDefController);
-learningRouter.get('/organizations/:orgId/learning-programs/:programId/milestones/:milestoneId/activities', listActivityDefsController);
+learningRouter.post('/organizations/:orgId/learning-programs', requireOrgAdmin, createProgramController);
+learningRouter.get('/organizations/:orgId/learning-programs', requireRole(['org_admin', 'org_member']), listProgramsController);
+learningRouter.get('/organizations/:orgId/learning-programs/:programId', requireRole(['org_admin', 'org_member']), getProgramByIdController);
+learningRouter.patch('/organizations/:orgId/learning-programs/:programId', requireOrgAdmin, updateProgramController);
+learningRouter.post('/organizations/:orgId/learning-programs/:programId/archive', requireOrgAdmin, archiveProgramController);
+learningRouter.post('/organizations/:orgId/learning-programs/:programId/milestones', requireOrgAdmin, addMilestoneController);
+learningRouter.get('/organizations/:orgId/learning-programs/:programId/milestones', requireRole(['org_admin', 'org_member']), listMilestonesController);
+learningRouter.post('/organizations/:orgId/learning-programs/:programId/milestones/:milestoneId/activities', requireOrgAdmin, addActivityDefController);
+learningRouter.get('/organizations/:orgId/learning-programs/:programId/milestones/:milestoneId/activities', requireRole(['org_admin', 'org_member']), listActivityDefsController);
 
 // Learning Enrollments
-learningRouter.post('/organizations/:orgId/learning-enrollments', createEnrollmentController);
-learningRouter.get('/organizations/:orgId/learning-enrollments', listEnrollmentsController);
-learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId', getEnrollmentByIdController);
-learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/activate', activateEnrollmentController);
-learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/pause', pauseEnrollmentController);
-learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/resume', resumeEnrollmentController);
-learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/complete', completeEnrollmentController);
-learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/withdraw', withdrawEnrollmentController);
-learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/cancel', cancelEnrollmentController);
+learningRouter.post('/organizations/:orgId/learning-enrollments', requireRole(['org_admin', 'org_member']), createEnrollmentController);
+learningRouter.get('/organizations/:orgId/learning-enrollments', requireRole(['org_admin', 'org_member']), listEnrollmentsController);
+learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId', requireRole(['org_admin', 'org_member']), getEnrollmentByIdController);
+learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/activate', requireRole(['org_admin', 'org_member']), activateEnrollmentController);
+learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/pause', requireRole(['org_admin', 'org_member']), pauseEnrollmentController);
+learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/resume', requireRole(['org_admin', 'org_member']), resumeEnrollmentController);
+learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/complete', requireRole(['org_admin', 'org_member']), completeEnrollmentController);
+learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/withdraw', requireRole(['org_admin', 'org_member']), withdrawEnrollmentController);
+learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/cancel', requireRole(['org_admin', 'org_member']), cancelEnrollmentController);
 
 // Personalized Plan (Milestones & Activities)
-learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/milestones', listEnrollmentMilestonesController);
-learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/milestones/:milestoneId/activate', activateMilestoneController);
-learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/milestones/:milestoneId/complete', completeMilestoneController);
-learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/milestones/:milestoneId/skip', skipMilestoneController);
-learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/activities', listEnrollmentActivitiesController);
-learningRouter.post('/organizations/:orgId/learning-activities/:activityId/complete', completeActivityController);
-learningRouter.post('/organizations/:orgId/learning-activities/:activityId/skip', skipActivityController);
-learningRouter.post('/organizations/:orgId/learning-activities/:activityId/references', addActivityReferenceController);
+learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/milestones', requireRole(['org_admin', 'org_member']), listEnrollmentMilestonesController);
+learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/milestones/:milestoneId/activate', requireRole(['org_admin', 'org_member']), activateMilestoneController);
+learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/milestones/:milestoneId/complete', requireRole(['org_admin', 'org_member']), completeMilestoneController);
+learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/milestones/:milestoneId/skip', requireRole(['org_admin', 'org_member']), skipMilestoneController);
+learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/activities', requireRole(['org_admin', 'org_member']), listEnrollmentActivitiesController);
+learningRouter.post('/organizations/:orgId/learning-activities/:activityId/complete', requireRole(['org_admin', 'org_member']), completeActivityController);
+learningRouter.post('/organizations/:orgId/learning-activities/:activityId/skip', requireRole(['org_admin', 'org_member']), skipActivityController);
+learningRouter.post('/organizations/:orgId/learning-activities/:activityId/references', requireRole(['org_admin', 'org_member']), addActivityReferenceController);
 
 // Reviews
-learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/reviews', createReviewController);
-learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/reviews', listReviewsController);
-learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/reviews/:reviewId', getReviewByIdController);
-learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/reviews/:reviewId/changes', addReviewChangeController);
-learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/reviews/:reviewId/changes', listReviewChangesController);
+learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/reviews', requireRole(['org_admin', 'org_member']), createReviewController);
+learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/reviews', requireRole(['org_admin', 'org_member']), listReviewsController);
+learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/reviews/:reviewId', requireRole(['org_admin', 'org_member']), getReviewByIdController);
+learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/reviews/:reviewId/changes', requireRole(['org_admin', 'org_member']), addReviewChangeController);
+learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/reviews/:reviewId/changes', requireRole(['org_admin', 'org_member']), listReviewChangesController);
 
 // Assessments
-learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/assessments', createAssessmentController);
-learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/assessments', listAssessmentsController);
-learningRouter.get('/organizations/:orgId/assessments/:assessmentId', getAssessmentByIdController);
-learningRouter.post('/organizations/:orgId/assessments/:assessmentId/attempts', submitAttemptController);
-learningRouter.get('/organizations/:orgId/assessments/:assessmentId/attempts', listAttemptsController);
-learningRouter.post('/organizations/:orgId/assessment-attempts/:attemptId/complete', completeAttemptController);
+learningRouter.post('/organizations/:orgId/learning-enrollments/:enrollmentId/assessments', requireRole(['org_admin', 'org_member']), createAssessmentController);
+learningRouter.get('/organizations/:orgId/learning-enrollments/:enrollmentId/assessments', requireRole(['org_admin', 'org_member']), listAssessmentsController);
+learningRouter.get('/organizations/:orgId/assessments/:assessmentId', requireRole(['org_admin', 'org_member']), getAssessmentByIdController);
+learningRouter.post('/organizations/:orgId/assessments/:assessmentId/attempts', requireRole(['org_admin', 'org_member']), submitAttemptController);
+learningRouter.get('/organizations/:orgId/assessments/:assessmentId/attempts', requireRole(['org_admin', 'org_member']), listAttemptsController);
+learningRouter.post('/organizations/:orgId/assessment-attempts/:attemptId/complete', requireRole(['org_admin', 'org_member']), completeAttemptController);
 
 // People / Enrollments view
-learningRouter.get('/organizations/:orgId/people/:personId/learning-enrollments', getPersonEnrollmentsController);
+learningRouter.get('/organizations/:orgId/people/:personId/learning-enrollments', requireRole(['org_admin', 'org_member']), getPersonEnrollmentsController);

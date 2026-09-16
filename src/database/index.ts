@@ -81,15 +81,48 @@ export const closeDb = async (): Promise<void> => {
 export const withTransaction = async <T>(
   callback: (client: DbClient) => Promise<T>
 ): Promise<T> => {
-  const db = getDbClient();
-  await db.query('BEGIN');
+  const isTest = config.NODE_ENV === 'test';
+  const usePGlite = process.env.USE_PGLITE === 'true' || (isTest && !process.env.DATABASE_URL);
+
+  if (usePGlite) {
+    const db = getDbClient();
+    await db.query('BEGIN');
+    try {
+      const result = await callback(db);
+      await db.query('COMMIT');
+      return result;
+    } catch (err) {
+      await db.query('ROLLBACK');
+      throw err;
+    }
+  }
+
+  // Real PostgreSQL connection pool: check out dedicated client
+  getDbClient(); // Ensure pgPool is initialized
+  const poolClient = await pgPool!.connect();
+  const txClient: DbClient = {
+    query: async <R = unknown>(sql: string, params?: unknown[]): Promise<QueryResult<R>> => {
+      const res = await poolClient.query(sql, params);
+      return {
+        rows: res.rows as R[],
+        rowCount: res.rowCount ?? 0,
+      };
+    },
+    exec: async (sql: string): Promise<void> => {
+      await poolClient.query(sql);
+    },
+  };
+
   try {
-    const result = await callback(db);
-    await db.query('COMMIT');
+    await poolClient.query('BEGIN');
+    const result = await callback(txClient);
+    await poolClient.query('COMMIT');
     return result;
   } catch (err) {
-    await db.query('ROLLBACK');
+    await poolClient.query('ROLLBACK');
     throw err;
+  } finally {
+    poolClient.release();
   }
 };
 

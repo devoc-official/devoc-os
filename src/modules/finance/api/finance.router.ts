@@ -6,6 +6,7 @@ import { FinancialTransactionController } from './financial-transaction.controll
 import { FinancialBudgetController } from './financial-budget.controller.js';
 import { authenticate } from '../../../auth/auth.middleware.js';
 import { resolveTenant } from '../../../tenant/tenant.middleware.js';
+import { requireOrgAdmin, requireRole } from '../../../permissions/permissions.middleware.js';
 
 export const financeRouter = Router();
 
@@ -19,75 +20,75 @@ const txCtrl = new FinancialTransactionController();
 const budgetCtrl = new FinancialBudgetController();
 
 // --- CATEGORIES ---
-tenantProtected.get('/finance/categories', catCtrl.listCategories);
-tenantProtected.post('/finance/categories', catCtrl.createCategory);
-tenantProtected.put('/finance/categories/:id', catCtrl.updateCategory);
+tenantProtected.get('/finance/categories', requireRole(['org_admin', 'org_member']), catCtrl.listCategories);
+tenantProtected.post('/finance/categories', requireOrgAdmin, catCtrl.createCategory);
+tenantProtected.put('/finance/categories/:id', requireOrgAdmin, catCtrl.updateCategory);
 
-tenantProtected.get('/organizations/:organizationId/finance/categories', catCtrl.listCategories);
-tenantProtected.post('/organizations/:organizationId/finance/categories', catCtrl.createCategory);
-tenantProtected.put('/organizations/:organizationId/finance/categories/:id', catCtrl.updateCategory);
+tenantProtected.get('/organizations/:organizationId/finance/categories', requireRole(['org_admin', 'org_member']), catCtrl.listCategories);
+tenantProtected.post('/organizations/:organizationId/finance/categories', requireOrgAdmin, catCtrl.createCategory);
+tenantProtected.put('/organizations/:organizationId/finance/categories/:id', requireOrgAdmin, catCtrl.updateCategory);
 
 // --- PARTIES ---
-tenantProtected.get('/finance/parties', partyCtrl.listParties);
-tenantProtected.post('/finance/parties', partyCtrl.createParty);
-tenantProtected.get('/finance/parties/:id', partyCtrl.getParty);
-tenantProtected.put('/finance/parties/:id', partyCtrl.updateParty);
+tenantProtected.get('/finance/parties', requireRole(['org_admin', 'org_member']), partyCtrl.listParties);
+tenantProtected.post('/finance/parties', requireOrgAdmin, partyCtrl.createParty);
+tenantProtected.get('/finance/parties/:id', requireRole(['org_admin', 'org_member']), partyCtrl.getParty);
+tenantProtected.put('/finance/parties/:id', requireOrgAdmin, partyCtrl.updateParty);
 
-tenantProtected.get('/organizations/:organizationId/finance/parties', partyCtrl.listParties);
-tenantProtected.post('/organizations/:organizationId/finance/parties', partyCtrl.createParty);
-tenantProtected.get('/organizations/:organizationId/finance/parties/:id', partyCtrl.getParty);
-tenantProtected.put('/organizations/:organizationId/finance/parties/:id', partyCtrl.updateParty);
+tenantProtected.get('/organizations/:organizationId/finance/parties', requireRole(['org_admin', 'org_member']), partyCtrl.listParties);
+tenantProtected.post('/organizations/:organizationId/finance/parties', requireOrgAdmin, partyCtrl.createParty);
+tenantProtected.get('/organizations/:organizationId/finance/parties/:id', requireRole(['org_admin', 'org_member']), partyCtrl.getParty);
+tenantProtected.put('/organizations/:organizationId/finance/parties/:id', requireOrgAdmin, partyCtrl.updateParty);
 
 // --- OBLIGATIONS ---
-tenantProtected.get('/finance/obligations', obliCtrl.listObligations);
-tenantProtected.post('/finance/obligations', obliCtrl.createObligation);
-tenantProtected.get('/finance/obligations/:id', obliCtrl.getObligation);
-tenantProtected.patch('/finance/obligations/:id', obliCtrl.updateObligation);
-tenantProtected.put('/finance/obligations/:id', obliCtrl.updateObligation);
-tenantProtected.post('/finance/obligations/:id/issue', obliCtrl.issueObligation);
-tenantProtected.post('/finance/obligations/:id/cancel', obliCtrl.cancelObligation);
-tenantProtected.post('/finance/obligations/:id/adjustments', obliCtrl.addAdjustment);
+tenantProtected.get('/finance/obligations', requireRole(['org_admin', 'org_member']), obliCtrl.listObligations);
+tenantProtected.post('/finance/obligations', requireOrgAdmin, obliCtrl.createObligation);
+tenantProtected.get('/finance/obligations/:id', requireRole(['org_admin', 'org_member']), obliCtrl.getObligation);
+tenantProtected.patch('/finance/obligations/:id', requireOrgAdmin, obliCtrl.updateObligation);
+tenantProtected.put('/finance/obligations/:id', requireOrgAdmin, obliCtrl.updateObligation);
+tenantProtected.post('/finance/obligations/:id/issue', requireOrgAdmin, obliCtrl.issueObligation);
+tenantProtected.post('/finance/obligations/:id/cancel', requireOrgAdmin, obliCtrl.cancelObligation);
+tenantProtected.post('/finance/obligations/:id/adjustments', requireOrgAdmin, obliCtrl.addAdjustment);
 
-tenantProtected.get('/organizations/:organizationId/finance/obligations', obliCtrl.listObligations);
-tenantProtected.post('/organizations/:organizationId/finance/obligations', obliCtrl.createObligation);
-tenantProtected.get('/organizations/:organizationId/finance/obligations/:id', obliCtrl.getObligation);
-tenantProtected.patch('/organizations/:organizationId/finance/obligations/:id', obliCtrl.updateObligation);
-tenantProtected.put('/organizations/:organizationId/finance/obligations/:id', obliCtrl.updateObligation);
-tenantProtected.post('/organizations/:organizationId/finance/obligations/:id/issue', obliCtrl.issueObligation);
-tenantProtected.post('/organizations/:organizationId/finance/obligations/:id/cancel', obliCtrl.cancelObligation);
-tenantProtected.post('/organizations/:organizationId/finance/obligations/:id/adjustments', obliCtrl.addAdjustment);
+tenantProtected.get('/organizations/:organizationId/finance/obligations', requireRole(['org_admin', 'org_member']), obliCtrl.listObligations);
+tenantProtected.post('/organizations/:organizationId/finance/obligations', requireOrgAdmin, obliCtrl.createObligation);
+tenantProtected.get('/organizations/:organizationId/finance/obligations/:id', requireRole(['org_admin', 'org_member']), obliCtrl.getObligation);
+tenantProtected.patch('/organizations/:organizationId/finance/obligations/:id', requireOrgAdmin, obliCtrl.updateObligation);
+tenantProtected.put('/organizations/:organizationId/finance/obligations/:id', requireOrgAdmin, obliCtrl.updateObligation);
+tenantProtected.post('/organizations/:organizationId/finance/obligations/:id/issue', requireOrgAdmin, obliCtrl.issueObligation);
+tenantProtected.post('/organizations/:organizationId/finance/obligations/:id/cancel', requireOrgAdmin, obliCtrl.cancelObligation);
+tenantProtected.post('/organizations/:organizationId/finance/obligations/:id/adjustments', requireOrgAdmin, obliCtrl.addAdjustment);
 
 // --- TRANSACTIONS ---
-tenantProtected.get('/finance/transactions', txCtrl.listTransactions);
-tenantProtected.post('/finance/transactions', txCtrl.createTransaction);
-tenantProtected.get('/finance/transactions/:id', txCtrl.getTransaction);
-tenantProtected.post('/finance/transactions/:id/post', txCtrl.postTransaction);
-tenantProtected.post('/finance/transactions/:id/reverse', txCtrl.reverseTransaction);
+tenantProtected.get('/finance/transactions', requireRole(['org_admin', 'org_member']), txCtrl.listTransactions);
+tenantProtected.post('/finance/transactions', requireOrgAdmin, txCtrl.createTransaction);
+tenantProtected.get('/finance/transactions/:id', requireRole(['org_admin', 'org_member']), txCtrl.getTransaction);
+tenantProtected.post('/finance/transactions/:id/post', requireOrgAdmin, txCtrl.postTransaction);
+tenantProtected.post('/finance/transactions/:id/reverse', requireOrgAdmin, txCtrl.reverseTransaction);
 
-tenantProtected.get('/organizations/:organizationId/finance/transactions', txCtrl.listTransactions);
-tenantProtected.post('/organizations/:organizationId/finance/transactions', txCtrl.createTransaction);
-tenantProtected.get('/organizations/:organizationId/finance/transactions/:id', txCtrl.getTransaction);
-tenantProtected.post('/organizations/:organizationId/finance/transactions/:id/post', txCtrl.postTransaction);
-tenantProtected.post('/organizations/:organizationId/finance/transactions/:id/reverse', txCtrl.reverseTransaction);
+tenantProtected.get('/organizations/:organizationId/finance/transactions', requireRole(['org_admin', 'org_member']), txCtrl.listTransactions);
+tenantProtected.post('/organizations/:organizationId/finance/transactions', requireOrgAdmin, txCtrl.createTransaction);
+tenantProtected.get('/organizations/:organizationId/finance/transactions/:id', requireRole(['org_admin', 'org_member']), txCtrl.getTransaction);
+tenantProtected.post('/organizations/:organizationId/finance/transactions/:id/post', requireOrgAdmin, txCtrl.postTransaction);
+tenantProtected.post('/organizations/:organizationId/finance/transactions/:id/reverse', requireOrgAdmin, txCtrl.reverseTransaction);
 
 // --- ALLOCATIONS & ADJUSTMENTS ---
-tenantProtected.get('/finance/allocations', txCtrl.listAllocations);
-tenantProtected.post('/finance/allocations', txCtrl.allocateTransaction);
-tenantProtected.post('/finance/adjustments', obliCtrl.addAdjustment);
+tenantProtected.get('/finance/allocations', requireRole(['org_admin', 'org_member']), txCtrl.listAllocations);
+tenantProtected.post('/finance/allocations', requireOrgAdmin, txCtrl.allocateTransaction);
+tenantProtected.post('/finance/adjustments', requireOrgAdmin, obliCtrl.addAdjustment);
 
-tenantProtected.get('/organizations/:organizationId/finance/allocations', txCtrl.listAllocations);
-tenantProtected.post('/organizations/:organizationId/finance/allocations', txCtrl.allocateTransaction);
-tenantProtected.post('/organizations/:organizationId/finance/adjustments', obliCtrl.addAdjustment);
+tenantProtected.get('/organizations/:organizationId/finance/allocations', requireRole(['org_admin', 'org_member']), txCtrl.listAllocations);
+tenantProtected.post('/organizations/:organizationId/finance/allocations', requireOrgAdmin, txCtrl.allocateTransaction);
+tenantProtected.post('/organizations/:organizationId/finance/adjustments', requireOrgAdmin, obliCtrl.addAdjustment);
 
 // --- BUDGETS ---
-tenantProtected.get('/finance/budgets', budgetCtrl.listBudgets);
-tenantProtected.post('/finance/budgets', budgetCtrl.createBudget);
-tenantProtected.get('/finance/budgets/:id', budgetCtrl.getBudget);
-tenantProtected.put('/finance/budgets/:id', budgetCtrl.updateBudget);
+tenantProtected.get('/finance/budgets', requireRole(['org_admin', 'org_member']), budgetCtrl.listBudgets);
+tenantProtected.post('/finance/budgets', requireOrgAdmin, budgetCtrl.createBudget);
+tenantProtected.get('/finance/budgets/:id', requireRole(['org_admin', 'org_member']), budgetCtrl.getBudget);
+tenantProtected.put('/finance/budgets/:id', requireOrgAdmin, budgetCtrl.updateBudget);
 
-tenantProtected.get('/organizations/:organizationId/finance/budgets', budgetCtrl.listBudgets);
-tenantProtected.post('/organizations/:organizationId/finance/budgets', budgetCtrl.createBudget);
-tenantProtected.get('/organizations/:organizationId/finance/budgets/:id', budgetCtrl.getBudget);
-tenantProtected.put('/organizations/:organizationId/finance/budgets/:id', budgetCtrl.updateBudget);
+tenantProtected.get('/organizations/:organizationId/finance/budgets', requireRole(['org_admin', 'org_member']), budgetCtrl.listBudgets);
+tenantProtected.post('/organizations/:organizationId/finance/budgets', requireOrgAdmin, budgetCtrl.createBudget);
+tenantProtected.get('/organizations/:organizationId/finance/budgets/:id', requireRole(['org_admin', 'org_member']), budgetCtrl.getBudget);
+tenantProtected.put('/organizations/:organizationId/finance/budgets/:id', requireOrgAdmin, budgetCtrl.updateBudget);
 
 financeRouter.use(tenantProtected);
