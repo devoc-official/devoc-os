@@ -2,17 +2,20 @@
 
 import React from 'react';
 import { AppShell } from '../../layouts/app-shell';
-import { FoundationPlaceholder } from '../../components/devoc/foundation-placeholder';
+import { FounderAnalyticsView } from '../../features/founder/views/founder-analytics-view';
+import { AcademyAnalyticsView } from '../../features/academy-head/views/academy-analytics-view';
+import { useRole } from '../../roles/role.context';
 
 export default function AnalyticsPage() {
+  const { currentRole } = useRole();
+
   return (
     <AppShell>
-      <FoundationPlaceholder
-        moduleName="Analytics & Decision Support"
-        milestoneTarget="Milestone F5 (Founder & Academy Head)"
-        description="Cross-BU contribution analytics, placement rates, student retention, revenue KPIs, and workforce utilization."
-        backendEngines={['Analytics Engine (M10)', 'Audit & Events (M11)']}
-      />
+      {currentRole === 'academy_head' ? (
+        <AcademyAnalyticsView />
+      ) : (
+        <FounderAnalyticsView />
+      )}
     </AppShell>
   );
 }

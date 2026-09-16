@@ -25,6 +25,10 @@ export const analyticsApi = {
     return apiClient.get<AnalyticsMetric[]>('/analytics/metrics', { organizationId });
   },
 
+  getMetric: async (organizationId: string, metricId: string): Promise<AnalyticsMetric> => {
+    return apiClient.get<AnalyticsMetric>(`/analytics/metrics/${metricId}`, { organizationId });
+  },
+
   computeMetric: async (
     organizationId: string,
     metricId: string,
@@ -35,5 +39,9 @@ export const analyticsApi = {
       period,
       { organizationId }
     );
+  },
+
+  listReports: async (organizationId: string): Promise<any[]> => {
+    return apiClient.get<any[]>('/analytics/reports', { organizationId });
   },
 };

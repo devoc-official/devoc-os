@@ -10,6 +10,17 @@ export interface Organization {
   updatedAt: string;
 }
 
+export interface Branch {
+  id: string;
+  organizationId: string;
+  name: string;
+  code: string;
+  location?: string | null;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface BusinessUnit {
   id: string;
   organizationId: string;
@@ -39,6 +50,10 @@ export interface Team {
 export const organizationApi = {
   getOrganization: async (id: string): Promise<Organization> => {
     return apiClient.get<Organization>(`/organizations/${id}`);
+  },
+
+  listBranches: async (organizationId: string): Promise<Branch[]> => {
+    return apiClient.get<Branch[]>(`/organizations/${organizationId}/branches`);
   },
 
   listBusinessUnits: async (organizationId: string): Promise<BusinessUnit[]> => {

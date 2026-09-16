@@ -206,8 +206,17 @@ export const learningApi = {
   },
 
   // Reviews
-  listReviews: async (orgId: string, enrollmentId: string): Promise<LearningReview[]> => {
-    return apiClient.get<LearningReview[]>(`/organizations/${orgId}/learning-enrollments/${enrollmentId}/reviews`, { organizationId: orgId });
+  listReviews: async (orgId: string, enrollmentId?: string): Promise<LearningReview[]> => {
+    if (enrollmentId) {
+      return apiClient.get<LearningReview[]>(`/organizations/${orgId}/learning-enrollments/${enrollmentId}/reviews`, { organizationId: orgId });
+    }
+    const enrollments = await apiClient.get<LearningEnrollment[]>(`/organizations/${orgId}/learning-enrollments`, { organizationId: orgId }).catch(() => []);
+    const reviewsByEnrollment = await Promise.all(
+      enrollments.map((e) =>
+        apiClient.get<LearningReview[]>(`/organizations/${orgId}/learning-enrollments/${e.id}/reviews`, { organizationId: orgId }).catch(() => [])
+      )
+    );
+    return reviewsByEnrollment.flat();
   },
 
   getReviewById: async (orgId: string, enrollmentId: string, reviewId: string): Promise<LearningReview> => {

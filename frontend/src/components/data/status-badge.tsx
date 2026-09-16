@@ -52,8 +52,8 @@ export function StatusBadge({ status, size = 'sm', className }: StatusBadgeProps
       break;
   }
 
-  const formatLabel = (str: string) => {
-    return str
+  const formatLabel = (str?: string) => {
+    return (str || '')
       .replace(/_/g, ' ')
       .replace(/\b\w/g, (char) => char.toUpperCase());
   };
