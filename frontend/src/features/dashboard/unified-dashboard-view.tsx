@@ -10,6 +10,8 @@ import { useAuth } from '../../auth/use-auth';
 import { Skeleton } from '../../components/ui/skeleton';
 
 import { StudentHomeView } from '../student/views/student-home-view';
+import { MentorDashboardView } from '../mentor/views/mentor-dashboard-view';
+import { ReviewerDashboardView } from '../reviewer/views/reviewer-dashboard-view';
 
 export function UnifiedDashboardView() {
   const { currentRole, switchRole, activeRoles, isLoading } = useRole();
@@ -19,14 +21,8 @@ export function UnifiedDashboardView() {
     return (
       <div className="space-y-6">
         <div className="space-y-2">
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-4 w-96" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-72" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Skeleton className="h-48" />
@@ -49,6 +45,32 @@ export function UnifiedDashboardView() {
           onResetToUnified={() => switchRole('all')}
         />
         <StudentHomeView />
+      </div>
+    );
+  }
+
+  if (currentRole === 'mentor') {
+    return (
+      <div className="space-y-6">
+        <ContextBanner
+          roleName={activeRoleName}
+          scopeName={currentOrganization?.organizationName}
+          onResetToUnified={() => switchRole('all')}
+        />
+        <MentorDashboardView />
+      </div>
+    );
+  }
+
+  if (currentRole === 'reviewer') {
+    return (
+      <div className="space-y-6">
+        <ContextBanner
+          roleName={activeRoleName}
+          scopeName={currentOrganization?.organizationName}
+          onResetToUnified={() => switchRole('all')}
+        />
+        <ReviewerDashboardView />
       </div>
     );
   }

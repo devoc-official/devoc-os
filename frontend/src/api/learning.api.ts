@@ -144,6 +144,10 @@ export const learningApi = {
   },
 
   // Enrollments
+  listEnrollments: async (orgId: string): Promise<LearningEnrollment[]> => {
+    return apiClient.get<LearningEnrollment[]>(`/organizations/${orgId}/learning-enrollments`, { organizationId: orgId });
+  },
+
   listPersonEnrollments: async (orgId: string, personId: string): Promise<LearningEnrollment[]> => {
     return apiClient.get<LearningEnrollment[]>(`/organizations/${orgId}/people/${personId}/learning-enrollments`, { organizationId: orgId });
   },
@@ -155,6 +159,30 @@ export const learningApi = {
   // Personalized Roadmap Milestones & Activities
   listEnrollmentMilestones: async (orgId: string, enrollmentId: string): Promise<EnrollmentMilestone[]> => {
     return apiClient.get<EnrollmentMilestone[]>(`/organizations/${orgId}/learning-enrollments/${enrollmentId}/milestones`, { organizationId: orgId });
+  },
+
+  activateMilestone: async (orgId: string, enrollmentId: string, milestoneId: string): Promise<EnrollmentMilestone> => {
+    return apiClient.post<EnrollmentMilestone>(
+      `/organizations/${orgId}/learning-enrollments/${enrollmentId}/milestones/${milestoneId}/activate`,
+      {},
+      { organizationId: orgId }
+    );
+  },
+
+  completeMilestone: async (orgId: string, enrollmentId: string, milestoneId: string): Promise<EnrollmentMilestone> => {
+    return apiClient.post<EnrollmentMilestone>(
+      `/organizations/${orgId}/learning-enrollments/${enrollmentId}/milestones/${milestoneId}/complete`,
+      {},
+      { organizationId: orgId }
+    );
+  },
+
+  skipMilestone: async (orgId: string, enrollmentId: string, milestoneId: string): Promise<EnrollmentMilestone> => {
+    return apiClient.post<EnrollmentMilestone>(
+      `/organizations/${orgId}/learning-enrollments/${enrollmentId}/milestones/${milestoneId}/skip`,
+      {},
+      { organizationId: orgId }
+    );
   },
 
   listEnrollmentActivities: async (orgId: string, enrollmentId: string): Promise<LearningActivity[]> => {
@@ -184,6 +212,47 @@ export const learningApi = {
 
   getReviewById: async (orgId: string, enrollmentId: string, reviewId: string): Promise<LearningReview> => {
     return apiClient.get<LearningReview>(`/organizations/${orgId}/learning-enrollments/${enrollmentId}/reviews/${reviewId}`, { organizationId: orgId });
+  },
+
+  createReview: async (
+    orgId: string,
+    enrollmentId: string,
+    payload: {
+      reviewerPersonId: string;
+      reviewType?: string;
+      reviewedAt?: string;
+      summary: string;
+      feedback?: string;
+      progressValue?: number;
+      metadata?: Record<string, any>;
+    }
+  ): Promise<LearningReview> => {
+    return apiClient.post<LearningReview>(
+      `/organizations/${orgId}/learning-enrollments/${enrollmentId}/reviews`,
+      payload,
+      { organizationId: orgId }
+    );
+  },
+
+  addReviewChange: async (
+    orgId: string,
+    enrollmentId: string,
+    reviewId: string,
+    payload: {
+      changeType: string;
+      targetType: string;
+      targetId: string;
+      previousValue?: any;
+      newValue?: any;
+      reason?: string;
+      metadata?: Record<string, any>;
+    }
+  ): Promise<ReviewChange> => {
+    return apiClient.post<ReviewChange>(
+      `/organizations/${orgId}/learning-enrollments/${enrollmentId}/reviews/${reviewId}/changes`,
+      payload,
+      { organizationId: orgId }
+    );
   },
 
   listReviewChanges: async (orgId: string, enrollmentId: string, reviewId: string): Promise<ReviewChange[]> => {
