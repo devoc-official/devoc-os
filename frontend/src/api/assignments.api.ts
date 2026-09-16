@@ -47,4 +47,12 @@ export const assignmentsApi = {
   getPersonAssignments: async (orgId: string, personId: string): Promise<Assignment[]> => {
     return apiClient.get<Assignment[]>(`/people/${personId}/assignments`, { organizationId: orgId });
   },
+
+  createAssignment: async (orgId: string, payload: Partial<Assignment>): Promise<Assignment> => {
+    return apiClient.post<Assignment>('/assignments', payload, { organizationId: orgId });
+  },
+
+  updateAssignment: async (orgId: string, assignmentId: string, payload: Partial<Assignment>): Promise<Assignment> => {
+    return apiClient.patch<Assignment>(`/assignments/${assignmentId}`, payload, { organizationId: orgId });
+  },
 };

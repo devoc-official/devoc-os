@@ -94,4 +94,8 @@ export const meetingsApi = {
   listDecisions: async (orgId: string, meetingId: string): Promise<MeetingDecision[]> => {
     return apiClient.get<MeetingDecision[]>(`/meetings/${meetingId}/decisions`, { organizationId: orgId });
   },
+
+  listActionItems: async (orgId: string, meetingId: string): Promise<MeetingActionItem[]> => {
+    return apiClient.get<MeetingActionItem[]>(`/meetings/${meetingId}/action-items`, { organizationId: orgId });
+  },
 };

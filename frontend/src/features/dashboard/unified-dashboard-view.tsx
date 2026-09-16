@@ -12,6 +12,9 @@ import { Skeleton } from '../../components/ui/skeleton';
 import { StudentHomeView } from '../student/views/student-home-view';
 import { MentorDashboardView } from '../mentor/views/mentor-dashboard-view';
 import { ReviewerDashboardView } from '../reviewer/views/reviewer-dashboard-view';
+import { EmployeeDashboardView } from '../employee/views/employee-dashboard-view';
+import { DeveloperDashboardView } from '../developer/views/developer-dashboard-view';
+import { PMDashboardView } from '../pm/views/pm-dashboard-view';
 
 export function UnifiedDashboardView() {
   const { currentRole, switchRole, activeRoles, isLoading } = useRole();
@@ -71,6 +74,45 @@ export function UnifiedDashboardView() {
           onResetToUnified={() => switchRole('all')}
         />
         <ReviewerDashboardView />
+      </div>
+    );
+  }
+
+  if (currentRole === 'employee') {
+    return (
+      <div className="space-y-6">
+        <ContextBanner
+          roleName={activeRoleName}
+          scopeName={currentOrganization?.organizationName}
+          onResetToUnified={() => switchRole('all')}
+        />
+        <EmployeeDashboardView />
+      </div>
+    );
+  }
+
+  if (currentRole === 'developer') {
+    return (
+      <div className="space-y-6">
+        <ContextBanner
+          roleName={activeRoleName}
+          scopeName={currentOrganization?.organizationName}
+          onResetToUnified={() => switchRole('all')}
+        />
+        <DeveloperDashboardView />
+      </div>
+    );
+  }
+
+  if (currentRole === 'project_manager') {
+    return (
+      <div className="space-y-6">
+        <ContextBanner
+          roleName={activeRoleName}
+          scopeName={currentOrganization?.organizationName}
+          onResetToUnified={() => switchRole('all')}
+        />
+        <PMDashboardView />
       </div>
     );
   }

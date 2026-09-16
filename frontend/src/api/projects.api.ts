@@ -49,6 +49,15 @@ export interface Task {
   updatedAt: string;
 }
 
+export interface TaskDependency {
+  id: string;
+  organizationId: string;
+  taskId: string;
+  dependsOnTaskId: string;
+  dependencyType: string;
+  createdAt: string;
+}
+
 export const projectsApi = {
   listProjects: async (orgId: string): Promise<Project[]> => {
     return apiClient.get<Project[]>('/projects', { organizationId: orgId });
@@ -56,6 +65,30 @@ export const projectsApi = {
 
   getProjectById: async (orgId: string, projectId: string): Promise<Project> => {
     return apiClient.get<Project>(`/projects/${projectId}`, { organizationId: orgId });
+  },
+
+  createProject: async (orgId: string, payload: Partial<Project>): Promise<Project> => {
+    return apiClient.post<Project>('/projects', payload, { organizationId: orgId });
+  },
+
+  updateProject: async (orgId: string, projectId: string, payload: Partial<Project>): Promise<Project> => {
+    return apiClient.patch<Project>(`/projects/${projectId}`, payload, { organizationId: orgId });
+  },
+
+  transitionProjectStatus: async (orgId: string, projectId: string, status: ProjectStatus): Promise<Project> => {
+    return apiClient.post<Project>(`/projects/${projectId}/status`, { status }, { organizationId: orgId });
+  },
+
+  getProjectOwners: async (orgId: string, projectId: string): Promise<any[]> => {
+    return apiClient.get<any[]>(`/projects/${projectId}/owners`, { organizationId: orgId });
+  },
+
+  getProjectBusinessUnits: async (orgId: string, projectId: string): Promise<any[]> => {
+    return apiClient.get<any[]>(`/projects/${projectId}/business-units`, { organizationId: orgId });
+  },
+
+  getProjectAssignments: async (orgId: string, projectId: string): Promise<any[]> => {
+    return apiClient.get<any[]>(`/projects/${projectId}/assignments`, { organizationId: orgId });
   },
 
   listTasks: async (
@@ -74,5 +107,40 @@ export const projectsApi = {
 
   listProjectTasks: async (orgId: string, projectId: string): Promise<Task[]> => {
     return apiClient.get<Task[]>(`/projects/${projectId}/tasks`, { organizationId: orgId });
+  },
+
+  createTask: async (orgId: string, payload: Partial<Task>): Promise<Task> => {
+    return apiClient.post<Task>('/tasks', payload, { organizationId: orgId });
+  },
+
+  updateTask: async (orgId: string, taskId: string, payload: Partial<Task>): Promise<Task> => {
+    return apiClient.patch<Task>(`/tasks/${taskId}`, payload, { organizationId: orgId });
+  },
+
+  transitionTaskStatus: async (orgId: string, taskId: string, status: TaskStatus): Promise<Task> => {
+    return apiClient.post<Task>(`/tasks/${taskId}/status`, { status }, { organizationId: orgId });
+  },
+
+  getTaskDependencies: async (orgId: string, taskId: string): Promise<TaskDependency[]> => {
+    return apiClient.get<TaskDependency[]>(`/tasks/${taskId}/dependencies`, { organizationId: orgId });
+  },
+
+  addDependency: async (
+    orgId: string,
+    taskId: string,
+    dependsOnTaskId: string,
+    dependencyType = 'blocks'
+  ): Promise<TaskDependency> => {
+    return apiClient.post<TaskDependency>(
+      `/tasks/${taskId}/dependencies`,
+      { dependsOnTaskId, dependencyType },
+      { organizationId: orgId }
+    );
+  },
+
+  removeDependency: async (orgId: string, taskId: string, dependencyId: string): Promise<{ success: boolean }> => {
+    return apiClient.delete<{ success: boolean }>(`/tasks/${taskId}/dependencies/${dependencyId}`, {
+      organizationId: orgId,
+    });
   },
 };

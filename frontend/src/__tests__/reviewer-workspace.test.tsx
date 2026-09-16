@@ -108,6 +108,7 @@ describe('Critical Reviewer Acceptance Test (F3 Master Criterion)', () => {
         createdAt: '2026-09-08T10:00:00Z',
         updatedAt: '2026-09-08T10:00:00Z',
       },
+      targetReview: null,
       previousSuggestions: [
         {
           id: 'sug-1',
@@ -141,7 +142,7 @@ describe('Critical Reviewer Acceptance Test (F3 Master Criterion)', () => {
             name: 'DeVoc Monolith Platform Core',
             code: 'PROJ-CORE',
             projectType: 'internal_tool',
-            status: 'in_progress' as const,
+            status: 'development' as const,
             progress: 45,
             createdAt: '2026-09-01T00:00:00Z',
             updatedAt: '2026-09-01T00:00:00Z',

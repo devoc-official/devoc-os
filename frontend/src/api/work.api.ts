@@ -77,4 +77,52 @@ export const workApi = {
   listOutcomes: async (orgId: string, workId: string): Promise<WorkOutcome[]> => {
     return apiClient.get<WorkOutcome[]>(`/work/${workId}/outcomes`, { organizationId: orgId });
   },
+
+  createWorkRecord: async (orgId: string, payload: Partial<WorkRecord>): Promise<WorkRecord> => {
+    return apiClient.post<WorkRecord>('/work', payload, { organizationId: orgId });
+  },
+
+  updateWorkRecord: async (orgId: string, workId: string, payload: Partial<WorkRecord>): Promise<WorkRecord> => {
+    return apiClient.patch<WorkRecord>(`/work/${workId}`, payload, { organizationId: orgId });
+  },
+
+  submitWork: async (orgId: string, workId: string): Promise<WorkRecord> => {
+    return apiClient.post<WorkRecord>(`/work/${workId}/submit`, {}, { organizationId: orgId });
+  },
+
+  approveWork: async (orgId: string, workId: string): Promise<WorkRecord> => {
+    return apiClient.post<WorkRecord>(`/work/${workId}/approve`, {}, { organizationId: orgId });
+  },
+
+  rejectWork: async (orgId: string, workId: string, reason?: string): Promise<WorkRecord> => {
+    return apiClient.post<WorkRecord>(`/work/${workId}/reject`, { reason }, { organizationId: orgId });
+  },
+
+  cancelWork: async (orgId: string, workId: string): Promise<WorkRecord> => {
+    return apiClient.post<WorkRecord>(`/work/${workId}/cancel`, {}, { organizationId: orgId });
+  },
+
+  addEvidence: async (
+    orgId: string,
+    workId: string,
+    payload: { title: string; evidenceUrl?: string; description?: string }
+  ): Promise<WorkEvidence> => {
+    return apiClient.post<WorkEvidence>(`/work/${workId}/evidence`, payload, { organizationId: orgId });
+  },
+
+  removeEvidence: async (orgId: string, workId: string, evidenceId: string): Promise<{ success: boolean }> => {
+    return apiClient.delete<{ success: boolean }>(`/work/${workId}/evidence/${evidenceId}`, {
+      organizationId: orgId,
+    });
+  },
+
+  linkOutcome: async (orgId: string, workId: string, outcomeId: string): Promise<WorkOutcome> => {
+    return apiClient.post<WorkOutcome>(`/work/${workId}/outcomes`, { outcomeId }, { organizationId: orgId });
+  },
+
+  unlinkOutcome: async (orgId: string, workId: string, outcomeId: string): Promise<{ success: boolean }> => {
+    return apiClient.delete<{ success: boolean }>(`/work/${workId}/outcomes/${outcomeId}`, {
+      organizationId: orgId,
+    });
+  },
 };

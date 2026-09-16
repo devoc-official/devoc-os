@@ -42,4 +42,20 @@ export const evaluationApi = {
   getEvaluation: async (orgId: string, id: string): Promise<Evaluation> => {
     return apiClient.get<Evaluation>(`/evaluations/${id}`, { organizationId: orgId });
   },
+
+  submitEvaluation: async (orgId: string, id: string): Promise<Evaluation> => {
+    return apiClient.post<Evaluation>(`/evaluations/${id}/submit`, {}, { organizationId: orgId });
+  },
+
+  completeEvaluation: async (orgId: string, id: string): Promise<Evaluation> => {
+    return apiClient.post<Evaluation>(`/evaluations/${id}/complete`, {}, { organizationId: orgId });
+  },
+
+  addFeedback: async (
+    orgId: string,
+    id: string,
+    payload: { feedbackType: FeedbackType; payload: Record<string, any> }
+  ): Promise<EvaluationFeedback> => {
+    return apiClient.post<EvaluationFeedback>(`/evaluations/${id}/feedback`, payload, { organizationId: orgId });
+  },
 };
