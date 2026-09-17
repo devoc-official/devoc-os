@@ -123,6 +123,8 @@ This index is the primary navigation point for engineering documentation.
 - [Performance & Resource Safety Audit](30_Hardening/Performance-Audit.md)
 - [Accessibility (WCAG 2.2 AA) Audit](30_Hardening/Accessibility-Audit.md)
 - [Test Coverage & Invariant Audit](30_Hardening/Test-Coverage-Audit.md)
+- [Repository Structure Architecture](30_Hardening/Repository-Structure.md)
+- [Repository Structure Migration Report](30_Hardening/Repository-Structure-Migration.md)
 
 ## Documentation Ownership
 

@@ -6,18 +6,35 @@ DeVoc OS unifies People, Learning, Evaluation, Work, Projects, Finance, Permissi
 
 ---
 
-## Current Status: Milestone 1 Completed
+## Repository Structure
 
-Milestone 1 (M1) is fully implemented, validated, and documented:
-- Project Foundation & Modular Monolith Architecture
-- PostgreSQL Database Connectivity & Migration System
-- JWT Authentication & Bcrypt Credentials Hashing
-- Strict Multi-Tenant Organization Context Resolution & Isolation
-- Contextual Authorization Model (`Role + BU + Team + Project`)
-- Complete Organization Engine (Organization, Branch, Business Unit, Department, Team)
-- Operational Audit Logging & Internal Domain Events
-- Operational Health & Readiness Endpoints
-- Automated Test Suites (Unit, Integration, Auth, Tenant Isolation, API Contracts)
+DeVoc OS uses a clean monorepo structure managed via npm Workspaces containing independently executable backend and frontend applications:
+
+```text
+devoc-os/
+│
+├── backend/
+│   ├── src/                 # Modular monolith domain engines (M1–M15)
+│   ├── tests/               # Unit, integration, auth, tenant isolation, and hardening test suites
+│   ├── migrations/          # PostgreSQL schema migrations (001–015)
+│   ├── dist/                # Compiled backend output (gitignored)
+│   ├── package.json         # Backend dependencies and scripts
+│   ├── tsconfig.json        # Backend TypeScript configuration
+│   └── vitest.config.ts     # Backend test configuration
+│
+├── frontend/
+│   ├── src/                 # Next.js 15 App Router experience layer (F1.2–F6)
+│   ├── public/              # Static assets
+│   ├── package.json         # Frontend dependencies and scripts
+│   ├── tsconfig.json        # Frontend TypeScript configuration
+│   └── vitest.config.ts     # Frontend test configuration
+│
+├── docs/                    # Architectural source of truth (ADRs, specs, domain rules)
+├── .env.example             # Environment variable template
+├── package.json             # Root workspace manifest (npm Workspaces)
+├── package-lock.json        # Single unified dependency lockfile
+└── README.md
+```
 
 ---
 
@@ -26,9 +43,10 @@ Milestone 1 (M1) is fully implemented, validated, and documented:
 ### Prerequisites
 - **Node.js**: v22.0.0 or higher (v24+ recommended)
 - **npm**: v10.0.0 or higher
-- **PostgreSQL**: v16 (Optional for production/local postgres; in-memory PGlite PostgreSQL runs automatically for tests)
+- **PostgreSQL**: v16 (Optional for local PostgreSQL; in-memory PGlite PostgreSQL runs automatically for tests)
 
 ### 1. Installation
+Install all workspace dependencies via a single root command:
 ```bash
 npm install
 ```
@@ -40,9 +58,13 @@ cp .env.example .env
 ```
 
 ### 3. Database Migrations
-Run schema migrations against PostgreSQL:
+Run schema migrations (001–015) against PostgreSQL:
 ```bash
+# From workspace root
 npm run migrate
+
+# Or directly targeting workspace
+npm --workspace=backend run migrate
 ```
 
 To reset the database schema and re-apply:
@@ -53,56 +75,63 @@ npm run migrate:reset
 ### 4. Development Database Seeding
 Seed development data (idempotent bootstrap):
 ```bash
+# From workspace root
 npm run seed
+
+# Or directly targeting workspace
+npm --workspace=backend run seed
 ```
 
-### 5. Running the Application
-Development mode:
-```bash
-npm run dev
-```
+---
 
-Production build & start:
+## Development & Execution Workflows
+
+### Running Applications
+
+#### From Workspace Root:
+- **Backend Dev**: `npm run dev:backend` (runs on `http://localhost:3000`)
+- **Frontend Dev**: `npm run dev:frontend` (runs on `http://localhost:3001`)
+- **Combined Dev**: `npm run dev`
+
+#### Independently in Applications:
+- **Backend**: `cd backend && npm run dev`
+- **Frontend**: `cd frontend && npm run dev`
+
+### Production Build:
 ```bash
+# Build both backend and frontend
 npm run build
-npm start
-```
 
-Server runs by default at `http://localhost:3000`.
+# Or individually
+npm run build:backend
+npm run build:frontend
+```
 
 ---
 
 ## Validation & Testing
 
-Run all automated unit, integration, authentication, tenant-isolation, and API contract tests:
+### Test Suites
 ```bash
+# Run both test suites from root
 npm test
+
+# Run backend test suite (53 suites, 527 tests)
+npm run test:backend
+
+# Run frontend test suite (42 suites, 145 tests)
+npm run test:frontend
 ```
 
-Run TypeScript static type checks:
+### TypeScript Static Typecheck
 ```bash
+# Check both applications
 npm run typecheck
+
+# Individually
+npm run typecheck:backend
+npm run typecheck:frontend
 ```
-
----
-
-## Core API Endpoints
-
-- `GET /api/v1/health` — Liveness check
-- `GET /api/v1/readiness` — PostgreSQL readiness check
-- `POST /api/v1/auth/login` — Authenticate user identity
-- `POST /api/v1/auth/logout` — Invalidate user session
-- `GET /api/v1/auth/me` — Current user & tenant memberships
-- `POST /api/v1/organizations/bootstrap` — Bootstrap new tenant organization
-- `GET /api/v1/organizations` — List accessible tenant organizations
-- `GET /api/v1/branches`, `POST /api/v1/branches` — Branch management
-- `GET /api/v1/business-units`, `POST /api/v1/business-units` — Business Unit management
-- `GET /api/v1/departments`, `POST /api/v1/departments` — Department management
-- `GET /api/v1/teams`, `POST /api/v1/teams` — Permanent & temporary teams
-- `GET /api/v1/memberships`, `POST /api/v1/memberships` — Organization membership management
-- `GET /api/v1/audit-logs` — Tenant operational audit trail
-
-All tenant-scoped requests require headers: `Authorization: Bearer <token>` and `X-Organization-Id: <org_uuid>`.
 
 ---
 
@@ -110,10 +139,13 @@ All tenant-scoped requests require headers: `Authorization: Bearer <token>` and 
 
 GitHub is the permanent engineering memory of DeVoc OS.
 
-- `AGENTS.md` — AI development rules and guidelines
-- `docs/Architecture-Index.md` — Engineering documentation index
-- `docs/01_Implementation/Milestone-01-Foundation.md` — Milestone 1 Specification
-- `docs/03_Database/Schema-M1.md` — Database schema documentation
-- `docs/04_API/API-Contracts-M1.md` — API architecture & REST contracts
+- `AGENTS.md` — AI development master rules and guidelines
+- `docs/Architecture-Index.md` — Complete engineering documentation index
+- `docs/30_Hardening/Repository-Structure.md` — Repository architecture and boundaries
+- `docs/30_Hardening/Repository-Structure-Migration.md` — Migration audit report
+- `docs/01_Implementation/` — Milestone specifications (M1–M15, F1–F6)
+- `docs/03_Database/` — Database schemas (M1–M15)
+- `docs/04_API/` — REST API contracts (M1–M15)
 - `docs/05_Security/Auth-And-Tenancy.md` — Security and tenant isolation specification
 - `docs/10_ADR/` — Architecture Decision Records (ADRs)
+- `docs/20_Frontend/` — Frontend design system & experience architecture

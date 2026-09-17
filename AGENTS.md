@@ -518,27 +518,37 @@ Use secure password/token handling through established libraries rather than cus
 
 ## 12. Code Organization
 
-Preferred backend structure:
+Preferred repository and backend structure:
 
 ```text
-src/
-  modules/
-    organization/
-    people/
-    assignments/
-    projects/
-    tasks/
-    work/
-    learning/
-    evaluation/
-    finance/
-    analytics/
-  auth/
-  permissions/
-  audit/
-  events/
-  database/
-  shared/
+backend/
+  src/
+    modules/
+      organization/
+      people/
+      assignments/
+      projects/
+      tasks/
+      work/
+      meetings/
+      learning/
+      evaluation/
+      finance/
+      analytics/
+      recruitment/
+      workforce/
+      workforce-time/
+    auth/
+    permissions/
+    audit/
+    events/
+    database/
+    shared/
+  tests/
+  migrations/
+frontend/
+  src/
+docs/
 ```
 
 Keep domain modules cohesive.

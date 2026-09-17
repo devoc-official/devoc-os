@@ -7,6 +7,7 @@ dist/
 build/
 .next/
 frontend/.next/
+backend/dist/
 *.tsbuildinfo
 
 # Environment & Secrets
