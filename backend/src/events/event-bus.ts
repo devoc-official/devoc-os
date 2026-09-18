@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface DomainEventPayload {
@@ -18,7 +18,9 @@ export interface DomainEventPayload {
   metadata?: Record<string, unknown>;
 }
 
-class DomainEventBus extends EventEmitter {
+export type DomainEventListener = (event: DomainEventPayload) => void | Promise<void>;
+
+export class DomainEventBus extends EventEmitter {
   public publish(event: Omit<DomainEventPayload, 'timestamp'>): void {
     const fullEvent: DomainEventPayload = {
       eventId: event.eventId || uuidv4(),
