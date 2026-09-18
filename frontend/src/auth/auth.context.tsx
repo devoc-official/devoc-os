@@ -36,28 +36,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const savedOrgId = typeof window !== 'undefined' ? localStorage.getItem(ORG_KEY) : null;
 
     if (savedToken) {
+      apiClient.setToken(savedToken);
       setToken(savedToken);
       if (savedOrgId) {
+        apiClient.setTenantId(savedOrgId);
         setActiveOrgId(savedOrgId);
       }
       authApi
-        .me()
+        .me(savedToken)
         .then((res) => {
           setUser(res.user);
           setMemberships(res.memberships);
           if (!savedOrgId && res.memberships.length > 0) {
             const firstOrg = res.memberships[0].organizationId;
+            apiClient.setTenantId(firstOrg);
             setActiveOrgId(firstOrg);
-            localStorage.setItem(ORG_KEY, firstOrg);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(ORG_KEY, firstOrg);
+            }
           }
         })
         .catch(() => {
           // Token invalid or expired
+          apiClient.setToken(null);
+          apiClient.setTenantId(null);
           setToken(null);
           setUser(null);
           setMemberships([]);
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(ORG_KEY);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(ORG_KEY);
+          }
         })
         .finally(() => {
           setIsLoading(false);
@@ -77,18 +86,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             : credentialsOrEmail;
 
         const res = await authApi.login(credentials);
+        apiClient.setToken(res.accessToken);
         setToken(res.accessToken);
         setUser(res.user);
-        localStorage.setItem(TOKEN_KEY, res.accessToken);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(TOKEN_KEY, res.accessToken);
+        }
 
-        // Fetch memberships
-        const meRes = await authApi.me();
+        // Fetch memberships passing the fresh accessToken explicitly
+        const meRes = await authApi.me(res.accessToken);
         setMemberships(meRes.memberships);
 
         if (meRes.memberships.length > 0) {
           const initialOrg = meRes.memberships[0].organizationId;
+          apiClient.setTenantId(initialOrg);
           setActiveOrgId(initialOrg);
-          localStorage.setItem(ORG_KEY, initialOrg);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(ORG_KEY, initialOrg);
+          }
         }
       } finally {
         setIsLoading(false);
@@ -103,16 +118,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await authApi.logout().catch(() => {});
       }
     } finally {
+      apiClient.setToken(null);
+      apiClient.setTenantId(null);
       setToken(null);
       setUser(null);
       setMemberships([]);
       setActiveOrgId(null);
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(ORG_KEY);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(ORG_KEY);
+      }
     }
   }, [token]);
 
   const switchOrganization = useCallback((orgId: string) => {
+    apiClient.setTenantId(orgId);
     setActiveOrgId(orgId);
     if (typeof window !== 'undefined') {
       localStorage.setItem(ORG_KEY, orgId);

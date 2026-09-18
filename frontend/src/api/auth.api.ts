@@ -36,7 +36,7 @@ export const authApi = {
     return apiClient.post<{ message: string }>('/auth/logout');
   },
 
-  me: async (): Promise<MeResponse> => {
-    return apiClient.get<MeResponse>('/auth/me');
+  me: async (token?: string): Promise<MeResponse> => {
+    return apiClient.get<MeResponse>('/auth/me', token ? { token } : undefined);
   },
 };

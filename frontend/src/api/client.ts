@@ -94,8 +94,10 @@ export class ApiClient {
         ? token
         : this.explicitToken !== null
         ? this.explicitToken
-        : this.tokenGetter
+        : this.tokenGetter && this.tokenGetter() !== null
         ? this.tokenGetter()
+        : typeof window !== 'undefined'
+        ? localStorage.getItem('devoc_access_token')
         : null;
 
     const effectiveOrgId =
@@ -103,8 +105,10 @@ export class ApiClient {
         ? organizationId
         : this.explicitTenantId !== null
         ? this.explicitTenantId
-        : this.orgIdGetter
+        : this.orgIdGetter && this.orgIdGetter() !== null
         ? this.orgIdGetter()
+        : typeof window !== 'undefined'
+        ? localStorage.getItem('devoc_active_org_id')
         : null;
 
     const reqHeaders: Record<string, string> = {
